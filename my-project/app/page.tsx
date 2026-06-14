@@ -1,65 +1,198 @@
-import Image from "next/image";
+'use client'
 
-export default function Home() {
+import { useState } from 'react'
+import { useRouter } from 'next/navigation'
+import Link from 'next/link'
+import Image from 'next/image'
+import { Eye, EyeOff } from 'lucide-react'
+
+export default function LoginPage() {
+  const [adminDni, setAdminDni] = useState('')
+  const [password, setPassword] = useState('')
+  const [error, setError] = useState('')
+  const [loading, setLoading] = useState(false)
+  const [showPassword, setShowPassword] = useState(false)
+  const router = useRouter()
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setError('')
+    setLoading(true)
+
+    try {
+      // 2. Ajustamos la ruta del endpoint a /api/auth/login
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/auth/login`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        // 3. Enviamos adminDni en lugar de email
+        body: JSON.stringify({ adminDni, password }) 
+      })
+
+      if (!response.ok) {
+       try {
+          // Intentamos leer el mensaje JSON de tu backend
+          const errorData = await response.json()
+          throw new Error(errorData.message || 'Credenciales inválidas')
+        } catch (parseError) {
+          // Si el backend falló tan grave que no devolvió JSON (ej. Error 500)
+          throw new Error('Error en la API: Respuesta inesperada del servidor')
+        }
+      }
+
+      const data = await response.json()
+
+      if (data.token) {
+        localStorage.setItem('auth_token', data.token)
+        // Guardamos también los datos reales del usuario que vienen de tu AuthController
+        localStorage.setItem('admin_nombres', data.adminNombres)
+        localStorage.setItem('admin_dni', data.adminDni)
+      }
+
+      router.push('/dashboard')
+      
+    } catch (err) {
+      // TypeError es el error específico que lanza fetch() cuando el servidor está totalmente apagado
+      if (err instanceof TypeError) {
+        setError('Error en la API: No se pudo contactar al servidor')
+      } else {
+        // Atrapa cualquier otro error que hayamos lanzado manualmente arriba
+        setError(err instanceof Error ? err.message : 'Error en la API')
+      }
+    } finally {
+      setLoading(false)
+    }
+  }
+
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
+    <div className="relative min-h-screen w-full overflow-hidden">
+      {/* Background Image */}
+      <div className="absolute inset-0 w-full h-full">
         <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
+          src="/car-background.png"
+          alt="Fondo"
+          fill
           priority
+          className="object-cover w-full h-full blur-sm"
         />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
+        <div className="absolute inset-0 bg-black/60" />
+      </div>
+
+      {/* Content */}
+      <div className="relative z-10 min-h-screen flex items-center justify-center px-4 py-8">
+        <div className="w-full max-w-md">
+          {/* Card */}
+          <div className="bg-white rounded-lg shadow-2xl overflow-hidden">
+            {/* Header con color */}
+            <div className="bg-gradient-to-r from-slate-900 to-slate-800 px-6 py-12 text-center">
+              <h1 className="text-3xl font-bold text-white mb-2">NOVA CAR</h1>
+              <p className="text-slate-300 text-sm">Auto-compra Inteligente</p>
+            </div>
+
+            {/* Form Container */}
+            <div className="px-6 py-8">
+
+              {/* Error */}
+              {error && (
+                <div className="mb-6 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm">
+                  {error}
+                </div>
+              )}
+
+              {/* Form */}
+              <form onSubmit={handleSubmit} className="space-y-5">
+                <div>
+                  {/* 4. Actualizamos las etiquetas y el input para el DNI */}
+                  <label htmlFor="adminDni" className="block text-sm font-semibold text-slate-700 mb-2">
+                    DNI
+                  </label>
+                  <input
+                    id="adminDni"
+                    type="text" // Cambiado de 'email' a 'text'
+                    value={adminDni}
+                    // 1. Filtramos en tiempo real para que solo acepte números (0-9)
+                    onChange={(e) => {
+                      const soloNumeros = e.target.value.replace(/\D/g, '')
+                      setAdminDni(soloNumeros)
+                    }}
+                    // 2. Limitamos físicamente a 8 caracteres
+                    maxLength={8}
+                    // 3. (Opcional) Validación nativa del navegador al dar clic en Iniciar Sesión
+                    pattern="\d{8}"
+                    title="El DNI debe tener exactamente 8 dígitos"
+                    className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-slate-600 focus:border-transparent outline-none transition bg-white text-black placeholder:text-slate-400"
+                    placeholder="00000000"
+                    required
+                  />
+                </div>
+
+                <div>
+                  <label htmlFor="password" className="block text-sm font-semibold text-slate-700 mb-2">
+                    Contraseña
+                  </label>
+                  <div className="relative">
+                    <input
+                      id="password"
+                      type={showPassword ? 'text' : 'password'}
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-slate-600 focus:border-transparent outline-none transition bg-white text-black placeholder:text-slate-400 pr-10"
+                      placeholder="••••••••"
+                      required
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-600 hover:text-slate-800"
+                    >
+                      {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                    </button>
+                  </div>
+                </div>
+
+                <button
+                  type="submit"
+                  disabled={loading}
+                  className="w-full bg-slate-900 hover:bg-slate-800 disabled:bg-slate-400 text-white py-3 rounded-lg font-semibold transition duration-200 mt-6"
+                >
+                  {loading ? 'Iniciando sesión...' : 'Iniciar Sesión'}
+                </button>
+              </form>
+
+              {/* Demo Credentials */}
+              <div className="mt-6 p-4 bg-amber-50 border border-amber-200 rounded-lg">
+                <p className="text-xs font-semibold text-amber-900 mb-2">CREDENCIALES DE DEMO:</p>
+                <div className="space-y-1 text-xs text-amber-800">
+                  {/* 5. Actualizamos el texto de demostración */}
+                  <p>DNI: 00000000</p>
+                  <p>Contraseña: admin123</p>
+                </div>
+              </div>
+
+              {/* Register Link */}
+              <div className="mt-6 text-center text-sm text-slate-600">
+                ¿No tienes cuenta?{' '}
+                <Link href="/register" className="text-slate-900 font-semibold hover:text-slate-700 transition">
+                  Crear cuenta
+                </Link>
+              </div>
+
+              {/* Forgot Password */}
+              <div className="mt-3 text-center text-sm">
+                <Link href="#" className="text-slate-600 hover:text-slate-900 transition">
+                  ¿Olvidaste tu contraseña?
+                </Link>
+              </div>
+            </div>
+          </div>
+
+          {/* Footer */}
+          <div className="mt-6 text-center text-slate-300 text-xs">
+            <p>&copy; 2026 NOVA CAR. Plataforma de Financiamiento Automotriz</p>
+          </div>
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
-      </main>
+      </div>
     </div>
-  );
+  )
 }
