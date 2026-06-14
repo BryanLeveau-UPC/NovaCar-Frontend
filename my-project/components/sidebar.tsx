@@ -35,10 +35,12 @@ export const Sidebar = () => {
 
   return (
     <aside className="w-64 bg-slate-900 text-white min-h-screen flex flex-col">
-      {/* Logo Section actualizado */}
+    {/* Logo Section actualizado */}
       <div className="px-6 py-6 border-b border-slate-800 flex flex-col items-center justify-center">
-        {/* Usamos tu componente LogoNovaCar aquí */}
-        <LogoNovaCar size="sm" />
+        {/* Envolvemos el logo y le aplicamos el filtro para volverlo blanco */}
+        <div className="brightness-0 invert">
+          <LogoNovaCar size="sm" />
+        </div>
       </div>
 
       {/* Navigation */}
