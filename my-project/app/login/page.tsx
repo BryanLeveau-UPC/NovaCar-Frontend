@@ -31,8 +31,14 @@ export default function LoginPage() {
       })
 
       if (!response.ok) {
-        const errorData = await response.json()
-        throw new Error(errorData.message || 'Credenciales inválidas')
+       try {
+          // Intentamos leer el mensaje JSON de tu backend
+          const errorData = await response.json()
+          throw new Error(errorData.message || 'Credenciales inválidas')
+        } catch (parseError) {
+          // Si el backend falló tan grave que no devolvió JSON (ej. Error 500)
+          throw new Error('Error en la API: Respuesta inesperada del servidor')
+        }
       }
 
       const data = await response.json()
@@ -41,10 +47,16 @@ export default function LoginPage() {
         localStorage.setItem('auth_token', data.token)
       }
 
-      router.push('/')
+      router.push('/dashboard')
       
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Error al conectar con el servidor')
+      // TypeError es el error específico que lanza fetch() cuando el servidor está totalmente apagado
+      if (err instanceof TypeError) {
+        setError('Error en la API: No se pudo contactar al servidor')
+      } else {
+        // Atrapa cualquier otro error que hayamos lanzado manualmente arriba
+        setError(err instanceof Error ? err.message : 'Error en la API')
+      }
     } finally {
       setLoading(false)
     }
