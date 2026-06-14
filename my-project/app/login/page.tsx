@@ -96,8 +96,17 @@ export default function LoginPage() {
                     id="adminDni"
                     type="text" // Cambiado de 'email' a 'text'
                     value={adminDni}
-                    onChange={(e) => setAdminDni(e.target.value)}
-                    className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-slate-600 focus:border-transparent outline-none transition bg-white"
+                    // 1. Filtramos en tiempo real para que solo acepte números (0-9)
+                    onChange={(e) => {
+                      const soloNumeros = e.target.value.replace(/\D/g, '')
+                      setAdminDni(soloNumeros)
+                    }}
+                    // 2. Limitamos físicamente a 8 caracteres
+                    maxLength={8}
+                    // 3. (Opcional) Validación nativa del navegador al dar clic en Iniciar Sesión
+                    pattern="\d{8}"
+                    title="El DNI debe tener exactamente 8 dígitos"
+                    className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-slate-600 focus:border-transparent outline-none transition bg-white text-black placeholder:text-slate-400"
                     placeholder="00000000"
                     required
                   />
@@ -113,7 +122,7 @@ export default function LoginPage() {
                       type={showPassword ? 'text' : 'password'}
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
-                      className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-slate-600 focus:border-transparent outline-none transition bg-white pr-10"
+                      className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-slate-600 focus:border-transparent outline-none transition bg-white text-black placeholder:text-slate-400 pr-10"
                       placeholder="••••••••"
                       required
                     />
