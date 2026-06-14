@@ -1,18 +1,57 @@
 'use client'
 
 import { ProtectedLayout } from '@/components/protected-layout'
-import { useAuth } from '@/lib/auth-context'
 import { useRouter } from 'next/navigation'
 import { User, LogOut, Shield, Bell } from 'lucide-react'
+import { useState, useEffect } from 'react'
+
+// Definimos la estructura de datos para el perfil
+interface PerfilUsuario {
+  adminNombres: string
+  adminDni: string
+  adminCorreo: string
+  fechaCreacion: string
+}
 
 export default function CuentaPage() {
-  const { user, logout } = useAuth()
   const router = useRouter()
+  const [userData, setUserData] = useState<PerfilUsuario | null>(null)
+
+  useEffect(() => {
+    const cargarDatosPerfil = async () => {
+      const token = localStorage.getItem('auth_token')
+      
+      if (!token) {
+        router.push('/')
+        return
+      }
+
+      // Pequeña pausa para evitar advertencias de renderizado en Next.js
+      await Promise.resolve()
+
+      const nombres = localStorage.getItem('admin_nombres') || 'Administrador'
+      const dni = localStorage.getItem('admin_dni') || 'Sin DNI'
+
+      // Actualizamos el estado con los datos reales
+      setUserData({
+        adminNombres: nombres,
+        adminDni: dni,
+        adminCorreo: 'admin@novacar.com', // Dato temporal hasta que se guarde en el login
+        fechaCreacion: new Date().toISOString() // Dato temporal, idealmente vendría del backend
+      })
+    }
+
+    cargarDatosPerfil()
+  }, [router])
 
   const handleLogout = () => {
     if (confirm('¿Estás seguro de que deseas cerrar sesión?')) {
-      logout()
-      router.push('/login')
+      // Borramos las credenciales reales
+      localStorage.removeItem('auth_token')
+      localStorage.removeItem('admin_nombres')
+      localStorage.removeItem('admin_dni')
+      
+      router.push('/')
     }
   }
 
@@ -33,7 +72,7 @@ export default function CuentaPage() {
                 Nombre Completo
               </label>
               <div className="px-4 py-3 bg-slate-50 border border-slate-200 rounded-lg text-slate-900 font-medium">
-                {user?.nombre}
+                {userData?.adminNombres || 'Cargando...'}
               </div>
             </div>
 
@@ -43,17 +82,17 @@ export default function CuentaPage() {
                 Email
               </label>
               <div className="px-4 py-3 bg-slate-50 border border-slate-200 rounded-lg text-slate-600">
-                {user?.email}
+                {userData?.adminCorreo || 'Cargando...'}
               </div>
             </div>
 
-            {/* User ID */}
+            {/* User ID (Usamos el DNI aquí ya que es tu identificador principal) */}
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-2">
-                ID de Usuario
+                DNI / ID de Usuario
               </label>
               <div className="px-4 py-3 bg-slate-50 border border-slate-200 rounded-lg text-slate-600 font-mono text-sm">
-                {user?.id}
+                {userData?.adminDni || 'Cargando...'}
               </div>
             </div>
 
@@ -63,8 +102,8 @@ export default function CuentaPage() {
                 Fecha de Registro
               </label>
               <div className="px-4 py-3 bg-slate-50 border border-slate-200 rounded-lg text-slate-600">
-                {user?.fecha_creacion
-                  ? new Date(user.fecha_creacion).toLocaleDateString('es-ES', {
+                {userData?.fechaCreacion
+                  ? new Date(userData.fechaCreacion).toLocaleDateString('es-PE', {
                       year: 'numeric',
                       month: 'long',
                       day: 'numeric',
@@ -151,12 +190,12 @@ export default function CuentaPage() {
 
         {/* About Section */}
         <div className="bg-gradient-to-br from-blue-50 to-blue-100 border border-blue-200 rounded-lg p-8">
-          <h3 className="text-lg font-bold text-blue-900 mb-3">Auto-Compra Inteligente</h3>
+          <h3 className="text-lg font-bold text-blue-900 mb-3">NOVA CAR</h3>
           <p className="text-blue-800 text-sm mb-3">
             Plataforma de financiamiento automotriz inteligente. Versión 1.0
           </p>
           <p className="text-blue-700 text-xs">
-            © 2024 Auto-Compra. Todos los derechos reservados.
+            © 2026 NOVA CAR. Todos los derechos reservados.
           </p>
         </div>
       </div>
