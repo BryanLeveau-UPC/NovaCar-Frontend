@@ -6,13 +6,13 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { Edit2, Trash2, Plus } from 'lucide-react'
 
-// 1. Adaptamos la interfaz a los nombres típicos de tu base de datos
+// 1. CORRECCIÓN: Adaptamos la interfaz EXACTAMENTE a lo que devuelve el backend
 interface Cliente {
   idCliente: number
-  nombres: string
-  apellidos: string
-  correo: string
-  telefono: string
+  cliNombres: string
+  cliApellidos: string
+  cliCorreo: string
+  cliTelefono: string
 }
 
 export default function ClientesPage() {
@@ -137,10 +137,11 @@ export default function ClientesPage() {
               <tbody className="divide-y divide-slate-200">
                 {clientes.map((cliente) => (
                   <tr key={cliente.idCliente} className="hover:bg-slate-50 transition">
-                    <td className="px-6 py-4 text-sm text-slate-900">{cliente.nombres}</td>
-                    <td className="px-6 py-4 text-sm text-slate-900">{cliente.apellidos}</td>
-                    <td className="px-6 py-4 text-sm text-slate-600">{cliente.correo}</td>
-                    <td className="px-6 py-4 text-sm text-slate-600">{cliente.telefono}</td>
+                    {/* 2. CORRECCIÓN: Leemos las propiedades con el prefijo "cli" */}
+                    <td className="px-6 py-4 text-sm text-slate-900">{cliente.cliNombres}</td>
+                    <td className="px-6 py-4 text-sm text-slate-900">{cliente.cliApellidos}</td>
+                    <td className="px-6 py-4 text-sm text-slate-600">{cliente.cliCorreo}</td>
+                    <td className="px-6 py-4 text-sm text-slate-600">{cliente.cliTelefono}</td>
                     <td className="px-6 py-4 text-sm">
                       <div className="flex items-center gap-2">
                         <Link
