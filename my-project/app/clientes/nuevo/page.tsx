@@ -12,30 +12,55 @@ export default function NuevoClientePage() {
   const [error, setError] = useState('')
 
   // Ajustamos los nombres para que coincidan EXACTAMENTE con tu ClienteDTO de Java
+  // cliTelefono se guarda SIEMPRE como 9 dígitos sin guiones; el formato "999-999-999"
+  // es solo visual y se aplica en el render del input.
   const [formData, setFormData] = useState({
-    dni: '',
-    nombres: '',
-    apellidos: '',
-    correo: '',
-    telefono: '',
-    direccion: '', // Si tu backend no usa estos últimos 3, simplemente los ignorará
-    empresa: '',
-    cargo: '',
+    cliDni: '',
+    cliNombres: '',
+    cliApellidos: '',
+    cliFecNac: '',
+    cliDireccion: '',
+    cliRegion: '',
+    cliTelefono: '',
+    cliCorreo: '',
+    cliIngresos: ''
   })
 
-// Validación y filtrado en tiempo real
+  // Convierte "999999999" -> "999-999-999" solo para mostrarlo en el input
+  const formatTelefono = (digits: string): string => {
+    const partes = []
+    if (digits.length > 0) partes.push(digits.slice(0, 3))
+    if (digits.length > 3) partes.push(digits.slice(3, 6))
+    if (digits.length > 6) partes.push(digits.slice(6, 9))
+    return partes.join('-')
+  }
+
+  // Validación y filtrado en tiempo real
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target
 
-    // 1. Bloquear letras en DNI y Teléfono
-    if (name === 'dni' && (!/^\d*$/.test(value) || value.length > 10)) return
-    if (name === 'telefono' && !/^\d*$/.test(value)) return
+    // 1. Bloquear letras en DNI (8 dígitos máximo, estándar Perú)
+    if (name === 'cliDni' && (!/^\d*$/.test(value) || value.length > 8)) return
+
+    // 2. Celular: nos quedamos solo con los dígitos (ignora los guiones del formato)
+    //    y limitamos a 9 dígitos (celulares en Perú)
+    if (name === 'cliTelefono') {
+      const soloDigitos = value.replace(/\D/g, '').slice(0, 9)
+      setFormData(prev => ({ ...prev, cliTelefono: soloDigitos }))
+      return
+    }
 
     setFormData(prev => ({ ...prev, [name]: value }))
   }
 
+  // En Perú el DNI siempre es de 8 dígitos
   const validateDNI = (dni: string): boolean => {
-    return /^\d{8}$/.test(dni) || /^\d{10}$/.test(dni)
+    return /^\d{8}$/.test(dni)
+  }
+
+  // Celulares en Perú: 9 dígitos exactos
+  const validateTelefono = (telefono: string): boolean => {
+    return /^\d{9}$/.test(telefono)
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -43,23 +68,25 @@ export default function NuevoClientePage() {
     setError('')
 
     // 1. Validaciones del frontend
-    if (!formData.dni || !validateDNI(formData.dni)) {
-      setError('DNI inválido (debe tener 8 o 10 dígitos)')
+    // Validación DNI (8 dígitos exactos)
+    if (!validateDNI(formData.cliDni)) {
+      setError('El DNI debe tener exactamente 8 dígitos')
       return
     }
 
-    if (!formData.nombres || !formData.apellidos || !formData.correo || !formData.telefono) {
+    if (!formData.cliNombres || !formData.cliApellidos || !formData.cliCorreo || !formData.cliTelefono) {
       setError('Los campos marcados con * son requeridos')
       return
     }
 
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.correo)) {
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.cliCorreo)) {
       setError('Formato de correo electrónico inválido')
       return
     }
 
-    if (formData.telefono.length < 7) {
-      setError('Teléfono inválido: mínimo 7 dígitos')
+    // Validación celular (9 dígitos exactos)
+    if (!validateTelefono(formData.cliTelefono)) {
+      setError('El celular debe tener exactamente 9 dígitos')
       return
     }
 
@@ -73,6 +100,12 @@ export default function NuevoClientePage() {
     setLoading(true)
 
     try {
+      // Conversión de tipo para el backend (cliIngresos como número)
+      const payload = {
+        ...formData,
+        cliIngresos: parseFloat(formData.cliIngresos) || 0
+      }
+
       // 3. Petición POST a tu backend real
       const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/clientes`, {
         method: 'POST',
@@ -80,12 +113,14 @@ export default function NuevoClientePage() {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
         },
-        // Enviamos el formData tal cual, ya que ahora sus llaves coinciden con el DTO
-        body: JSON.stringify(formData)
+        body: JSON.stringify(payload)
       })
 
       if (!response.ok) {
-        throw new Error('Error en el servidor al intentar crear el cliente')
+        // El backend responde { "mensaje": "..." } para DNI/correo/teléfono duplicados (409)
+        // o cliente no encontrado (404). Mostramos ese mensaje si existe.
+        const errorData = await response.json().catch(() => null)
+        throw new Error(errorData?.mensaje || 'Error en el servidor al intentar crear el cliente')
       }
 
       // Si todo sale bien, lo devolvemos a la lista de clientes
@@ -123,65 +158,117 @@ export default function NuevoClientePage() {
               <h3 className="text-lg font-semibold text-slate-900 mb-4">Información Personal</h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <label htmlFor="dni" className="block text-sm font-medium text-slate-700 mb-2">
+                  <label htmlFor="cliDni" className="block text-sm font-medium text-slate-700 mb-2">
                     DNI *
                   </label>
                   <input
-                    id="dni"
-                    name="dni"
+                    id="cliDni"
+                    name="cliDni"
                     type="text"
-                    value={formData.dni}
+                    inputMode="numeric"
+                    maxLength={8}
+                    value={formData.cliDni}
                     onChange={handleChange}
-                    className="w-full px-4 py-2 border border-slate-400 rounded-lg focus:ring-2 focus:ring-slate-900 focus:border-transparent outline-none transition font text-slate-950 placeholder:text-slate-400"                    
+                    className="w-full px-4 py-2 border border-slate-400 rounded-lg focus:ring-2  focus:ring-blue-500 focus:border-transparent outline-none transition font text-slate-950 placeholder:text-slate-400"
                     placeholder="12345678"
                     required
                   />
                 </div>
 
                 <div>
-                  <label htmlFor="nombres" className="block text-sm font-medium text-slate-700 mb-2">
+                  <label htmlFor="cliNombres" className="block text-sm font-medium text-slate-700 mb-2">
                     Nombres *
                   </label>
                   <input
-                    id="nombres"
-                    name="nombres"
+                    id="cliNombres"
+                    name="cliNombres"
                     type="text"
-                    value={formData.nombres}
+                    value={formData.cliNombres}
                     onChange={handleChange}
-                    className="w-full px-4 py-2 border border-slate-400 rounded-lg focus:ring-2 focus:ring-slate-900 focus:border-transparent outline-none transition font text-slate-950 placeholder:text-slate-400"                       
+                    className="w-full px-4 py-2 border border-slate-400 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition font text-slate-950 placeholder:text-slate-400"
                     placeholder="Juan"
                     required
                   />
                 </div>
 
                 <div>
-                  <label htmlFor="apellidos" className="block text-sm font-medium text-slate-700 mb-2">
+                  <label htmlFor="cliApellidos" className="block text-sm font-medium text-slate-700 mb-2">
                     Apellidos *
                   </label>
                   <input
-                    id="apellidos"
-                    name="apellidos"
+                    id="cliApellidos"
+                    name="cliApellidos"
                     type="text"
-                    value={formData.apellidos}
+                    value={formData.cliApellidos}
                     onChange={handleChange}
-                    className="w-full px-4 py-2 border border-slate-400 rounded-lg focus:ring-2 focus:ring-slate-900 focus:border-transparent outline-none transition font text-slate-950 placeholder:text-slate-400"                       
+                    className="w-full px-4 py-2 border border-slate-400 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition font text-slate-950 placeholder:text-slate-400"
                     placeholder="Pérez García"
                     required
                   />
                 </div>
 
                 <div>
-                  <label htmlFor="telefono" className="block text-sm font-medium text-slate-700 mb-2">
-                    Teléfono *
+                  <label htmlFor="cliFecNac" className="block text-sm font-medium text-slate-700 mb-2">
+                    Fecha de Nacimiento *
                   </label>
                   <input
-                    id="telefono"
-                    name="telefono"
-                    type="tel"
-                    value={formData.telefono}
+                    id="cliFecNac"
+                    name="cliFecNac"
+                    type="date"
+                    value={formData.cliFecNac}
                     onChange={handleChange}
-                    className="w-full px-4 py-2 border border-slate-400 rounded-lg focus:ring-2 focus:ring-slate-900 focus:border-transparent outline-none transition font text-slate-950 placeholder:text-slate-400"                       
-                    placeholder="999999999"
+                    className="w-full px-4 py-2 border border-slate-400 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition font text-slate-950 placeholder:text-slate-400"
+                    required
+                  />
+                </div>
+
+                <div>
+                  <label htmlFor="cliRegion" className="block text-sm font-medium text-slate-700 mb-2">
+                    Región *
+                  </label>
+                  <input
+                    id="cliRegion"
+                    name="cliRegion"
+                    type="text"
+                    value={formData.cliRegion}
+                    onChange={handleChange}
+                    className="w-full px-4 py-2 border border-slate-400 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition font text-slate-950 placeholder:text-slate-400"
+                    placeholder="Lima"
+                    required
+                  />
+                </div>
+
+                <div>
+                  <label htmlFor="cliIngresos" className="block text-sm font-medium text-slate-700 mb-2">
+                    Ingreso *
+                  </label>
+                  <input
+                    id="cliIngresos"
+                    name="cliIngresos"
+                    type="number"
+                    step="0.01"
+                    value={formData.cliIngresos}
+                    onChange={handleChange}
+                    className="w-full px-4 py-2 border border-slate-400 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition font text-slate-950 placeholder:text-slate-400"
+                    placeholder="00.00"
+                    required
+                  />
+                </div>
+
+                <div>
+                  <label htmlFor="cliTelefono" className="block text-sm font-medium text-slate-700 mb-2">
+                    Celular *
+                  </label>
+                  <input
+                    id="cliTelefono"
+                    name="cliTelefono"
+                    type="tel"
+                    inputMode="numeric"
+                    maxLength={11}
+                    value={formatTelefono(formData.cliTelefono)}
+                    onChange={handleChange}
+                    className="w-full px-4 py-2 border border-slate-400 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition font text-slate-950 placeholder:text-slate-400"
+                    placeholder="999-999-999"
                     required
                   />
                 </div>
@@ -193,69 +280,33 @@ export default function NuevoClientePage() {
               <h3 className="text-lg font-semibold text-slate-900 mb-4">Información de Contacto</h3>
               <div className="space-y-4">
                 <div>
-                  <label htmlFor="correo" className="block text-sm font-medium text-slate-700 mb-2">
+                  <label htmlFor="cliCorreo" className="block text-sm font-medium text-slate-700 mb-2">
                     Correo Electrónico *
                   </label>
                   <input
-                    id="correo"
-                    name="correo"
+                    id="cliCorreo"
+                    name="cliCorreo"
                     type="email"
-                    value={formData.correo}
+                    value={formData.cliCorreo}
                     onChange={handleChange}
-                    className="w-full px-4 py-2 border border-slate-400 rounded-lg focus:ring-2 focus:ring-slate-900 focus:border-transparent outline-none transition font text-slate-950 placeholder:text-slate-400"                       
+                    className="w-full px-4 py-2 border border-slate-400 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition font text-slate-950 placeholder:text-slate-400"
                     placeholder="juan@ejemplo.com"
                     required
                   />
                 </div>
 
                 <div>
-                  <label htmlFor="direccion" className="block text-sm font-medium text-slate-700 mb-2">
+                  <label htmlFor="cliDireccion" className="block text-sm font-medium text-slate-700 mb-2">
                     Dirección
                   </label>
                   <textarea
-                    id="direccion"
-                    name="direccion"
-                    value={formData.direccion}
+                    id="cliDireccion"
+                    name="cliDireccion"
+                    value={formData.cliDireccion}
                     onChange={handleChange}
-                    className="w-full px-4 py-2 border border-slate-400 rounded-lg focus:ring-2 focus:ring-slate-900 focus:border-transparent outline-none transition font text-slate-950 placeholder:text-slate-400"                       
+                    className="w-full px-4 py-2 border border-slate-400 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition font text-slate-950 placeholder:text-slate-400"
                     placeholder="Calle Principal 123, Apt 4B"
                     rows={2}
-                  />
-                </div>
-              </div>
-            </div>
-
-            {/* Sección: Información Laboral */}
-            <div>
-              <h3 className="text-lg font-semibold text-slate-900 mb-4">Información Laboral (Opcional)</h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label htmlFor="empresa" className="block text-sm font-medium text-slate-700 mb-2">
-                    Empresa
-                  </label>
-                  <input
-                    id="empresa"
-                    name="empresa"
-                    type="text"
-                    value={formData.empresa}
-                    onChange={handleChange}
-                    className="w-full px-4 py-2 border border-slate-400 rounded-lg focus:ring-2 focus:ring-slate-900 focus:border-transparent outline-none transition font text-slate-950 placeholder:text-slate-400"                       
-                    placeholder="Nombre de la Empresa"
-                  />
-                </div>
-
-                <div>
-                  <label htmlFor="cargo" className="block text-sm font-medium text-slate-700 mb-2">
-                    Cargo
-                  </label>
-                  <input
-                    id="cargo"
-                    name="cargo"
-                    type="text"
-                    value={formData.cargo}
-                    onChange={handleChange}
-                    className="w-full px-4 py-2 border border-slate-400 rounded-lg focus:ring-2 focus:ring-slate-900 focus:border-transparent outline-none transition font text-slate-950 placeholder:text-slate-400"                       
-                    placeholder="Gerente General"
                   />
                 </div>
               </div>
