@@ -23,8 +23,14 @@ export default function NuevoClientePage() {
     cargo: '',
   })
 
+// Validación y filtrado en tiempo real
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target
+
+    // 1. Bloquear letras en DNI y Teléfono
+    if (name === 'dni' && (!/^\d*$/.test(value) || value.length > 10)) return
+    if (name === 'telefono' && !/^\d*$/.test(value)) return
+
     setFormData(prev => ({ ...prev, [name]: value }))
   }
 
@@ -48,12 +54,12 @@ export default function NuevoClientePage() {
     }
 
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.correo)) {
-      setError('Correo electrónico inválido')
+      setError('Formato de correo electrónico inválido')
       return
     }
 
-    if (!/^\d{7,}$/.test(formData.telefono)) {
-      setError('Teléfono inválido (mínimo 7 dígitos)')
+    if (formData.telefono.length < 7) {
+      setError('Teléfono inválido: mínimo 7 dígitos')
       return
     }
 
@@ -126,7 +132,7 @@ export default function NuevoClientePage() {
                     type="text"
                     value={formData.dni}
                     onChange={handleChange}
-                    className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-slate-600 focus:border-transparent outline-none transition"
+                    className="w-full px-4 py-2 border border-slate-400 rounded-lg focus:ring-2 focus:ring-slate-900 focus:border-transparent outline-none transition font text-slate-950 placeholder:text-slate-400"                    
                     placeholder="12345678"
                     required
                   />
@@ -142,7 +148,7 @@ export default function NuevoClientePage() {
                     type="text"
                     value={formData.nombres}
                     onChange={handleChange}
-                    className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-slate-600 focus:border-transparent outline-none transition"
+                    className="w-full px-4 py-2 border border-slate-400 rounded-lg focus:ring-2 focus:ring-slate-900 focus:border-transparent outline-none transition font text-slate-950 placeholder:text-slate-400"                       
                     placeholder="Juan"
                     required
                   />
@@ -158,7 +164,7 @@ export default function NuevoClientePage() {
                     type="text"
                     value={formData.apellidos}
                     onChange={handleChange}
-                    className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-slate-600 focus:border-transparent outline-none transition"
+                    className="w-full px-4 py-2 border border-slate-400 rounded-lg focus:ring-2 focus:ring-slate-900 focus:border-transparent outline-none transition font text-slate-950 placeholder:text-slate-400"                       
                     placeholder="Pérez García"
                     required
                   />
@@ -174,7 +180,7 @@ export default function NuevoClientePage() {
                     type="tel"
                     value={formData.telefono}
                     onChange={handleChange}
-                    className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-slate-600 focus:border-transparent outline-none transition"
+                    className="w-full px-4 py-2 border border-slate-400 rounded-lg focus:ring-2 focus:ring-slate-900 focus:border-transparent outline-none transition font text-slate-950 placeholder:text-slate-400"                       
                     placeholder="999999999"
                     required
                   />
@@ -196,7 +202,7 @@ export default function NuevoClientePage() {
                     type="email"
                     value={formData.correo}
                     onChange={handleChange}
-                    className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-slate-600 focus:border-transparent outline-none transition"
+                    className="w-full px-4 py-2 border border-slate-400 rounded-lg focus:ring-2 focus:ring-slate-900 focus:border-transparent outline-none transition font text-slate-950 placeholder:text-slate-400"                       
                     placeholder="juan@ejemplo.com"
                     required
                   />
@@ -211,7 +217,7 @@ export default function NuevoClientePage() {
                     name="direccion"
                     value={formData.direccion}
                     onChange={handleChange}
-                    className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-slate-600 focus:border-transparent outline-none transition resize-none"
+                    className="w-full px-4 py-2 border border-slate-400 rounded-lg focus:ring-2 focus:ring-slate-900 focus:border-transparent outline-none transition font text-slate-950 placeholder:text-slate-400"                       
                     placeholder="Calle Principal 123, Apt 4B"
                     rows={2}
                   />
@@ -233,7 +239,7 @@ export default function NuevoClientePage() {
                     type="text"
                     value={formData.empresa}
                     onChange={handleChange}
-                    className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-slate-600 focus:border-transparent outline-none transition"
+                    className="w-full px-4 py-2 border border-slate-400 rounded-lg focus:ring-2 focus:ring-slate-900 focus:border-transparent outline-none transition font text-slate-950 placeholder:text-slate-400"                       
                     placeholder="Nombre de la Empresa"
                   />
                 </div>
@@ -248,7 +254,7 @@ export default function NuevoClientePage() {
                     type="text"
                     value={formData.cargo}
                     onChange={handleChange}
-                    className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-slate-600 focus:border-transparent outline-none transition"
+                    className="w-full px-4 py-2 border border-slate-400 rounded-lg focus:ring-2 focus:ring-slate-900 focus:border-transparent outline-none transition font text-slate-950 placeholder:text-slate-400"                       
                     placeholder="Gerente General"
                   />
                 </div>
