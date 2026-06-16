@@ -107,7 +107,7 @@ export default function VehiculosPage() {
           </div>
           <Link
             href="/vehiculos/nuevo"
-            className="inline-flex items-center gap-2 bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg font-medium transition shadow-sm"
+            className="inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium transition shadow-sm"
           >
             <Plus className="w-5 h-5" />
             Nuevo Vehículo
@@ -199,7 +199,7 @@ export default function VehiculosPage() {
               <p className="text-slate-600 text-lg mb-4">No hay vehículos registrados en el catálogo.</p>
               <Link
                 href="/vehiculos/nuevo"
-                className="inline-flex items-center gap-2 bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg font-medium transition"
+                className="inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium transition"
               >
                 <Plus className="w-5 h-5" />
                 Registrar Primer Vehículo
