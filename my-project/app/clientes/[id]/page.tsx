@@ -15,21 +15,22 @@ export default function EditarClientePage() {
   const [initialLoad, setInitialLoad] = useState(true)
   const [error, setError] = useState('')
   
-  // Mismos nombres exactos que en NuevoClientePage (ClienteDTO de Java)
+  // 1. Mismos nombres exactos actualizados con Departamento, Provincia y Distrito
   const [formData, setFormData] = useState({
     cliDni: '',
     cliNombres: '',
     cliApellidos: '',
     cliFecNac: '',
     cliDireccion: '',
-    cliRegion: '',
+    cliDepartamento: '',
+    cliProvincia: '',
+    cliDistrito: '',
     cliTelefono: '',
     cliCorreo: '',
     cliIngresos: '',
-    estado: '' // Se mantendrá el estado que venga de la base de datos
+    estado: ''
   })
 
-  // Convierte "999999999" -> "999-999-999" solo para mostrarlo
   const formatTelefono = (digits: string): string => {
     const partes = []
     if (digits.length > 0) partes.push(digits.slice(0, 3))
@@ -38,7 +39,7 @@ export default function EditarClientePage() {
     return partes.join('-')
   }
 
-  // 1. Cargar los datos actuales del cliente al entrar a la página
+  // Cargar los datos actuales del cliente al entrar a la página
   useEffect(() => {
     const fetchCliente = async () => {
       const token = localStorage.getItem('auth_token')
@@ -61,14 +62,16 @@ export default function EditarClientePage() {
 
         const data = await response.json()
         
-        // Rellenamos el formulario con los datos exactos del backend
+        // 2. Rellenamos el formulario incluyendo los nuevos campos
         setFormData({
           cliDni: data.cliDni || '',
           cliNombres: data.cliNombres || '',
           cliApellidos: data.cliApellidos || '',
           cliFecNac: data.cliFecNac || '',
           cliDireccion: data.cliDireccion || '',
-          cliRegion: data.cliRegion || '',
+          cliDepartamento: data.cliDepartamento || '',
+          cliProvincia: data.cliProvincia || '',
+          cliDistrito: data.cliDistrito || '',
           cliTelefono: data.cliTelefono || '',
           cliCorreo: data.cliCorreo || '',
           cliIngresos: data.cliIngresos ? data.cliIngresos.toString() : '',
@@ -84,7 +87,6 @@ export default function EditarClientePage() {
     fetchCliente()
   }, [clienteId, router])
 
-  // Validación y filtrado en tiempo real (Igual que en Nuevo Cliente)
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target
 
@@ -107,12 +109,11 @@ export default function EditarClientePage() {
     return /^\d{9}$/.test(telefono)
   }
 
-  // 2. Guardar los cambios (Actualizar - PUT)
+  // Guardar los cambios (Actualizar - PUT)
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError('')
 
-    // Validaciones del frontend
     if (!validateDNI(formData.cliDni)) {
       setError('El DNI debe tener exactamente 8 dígitos')
       return
@@ -153,10 +154,9 @@ export default function EditarClientePage() {
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => null)
-        throw new Error(errorData?.mensaje || 'Error al actualizar el cliente en el servidor')
+        throw new Error(errorData?.mensaje || errorData?.message || 'Error al actualizar el cliente en el servidor')
       }
 
-      // Si se actualizó correctamente, volvemos a la lista
       router.push('/clientes')
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Error al guardar los cambios')
@@ -165,7 +165,6 @@ export default function EditarClientePage() {
     }
   }
 
-  // Pantalla de carga mientras trae los datos del GET
   if (initialLoad) {
     return (
       <ProtectedLayout title="Editar Cliente">
@@ -179,17 +178,15 @@ export default function EditarClientePage() {
 
   return (
     <ProtectedLayout title="Editar Cliente">
-      <div className="max-w-2xl">
-        {/* Header */}
-        <div className="flex items-center gap-3 mb-8">
-          <Link href="/clientes" className="text-slate-600 hover:text-slate-900 transition">
-            <ArrowLeft className="w-5 h-5" />
-          </Link>
-          <h3 className="text-2xl font-bold text-slate-900">Editar Cliente</h3>
-        </div>
+      <div className="max-w-3xl mx-auto">
+        <Link href="/clientes" className="inline-flex items-center gap-2 text-slate-600 hover:text-slate-900 mb-6 transition">
+          <ArrowLeft className="w-5 h-5" />
+          <span>Volver a Clientes</span>
+        </Link>
 
-        {/* Form Card */}
         <div className="bg-white border border-slate-200 rounded-lg p-8 shadow-sm">
+          <h2 className="text-2xl font-bold text-slate-900 mb-6">Editar Cliente</h2>
+
           {error && (
             <div className="mb-6 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg font-medium text-sm">
               {error}
@@ -215,6 +212,21 @@ export default function EditarClientePage() {
                     onChange={handleChange}
                     className="w-full px-4 py-2 border border-slate-400 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition font text-slate-950 placeholder:text-slate-400"
                     placeholder="12345678"
+                    required
+                  />
+                </div>
+
+                <div>
+                  <label htmlFor="cliFecNac" className="block text-sm font-medium text-slate-700 mb-2">
+                    Fecha de Nacimiento *
+                  </label>
+                  <input
+                    id="cliFecNac"
+                    name="cliFecNac"
+                    type="date"
+                    value={formData.cliFecNac}
+                    onChange={handleChange}
+                    className="w-full px-4 py-2 border border-slate-400 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition font text-slate-950 placeholder:text-slate-400"
                     required
                   />
                 </div>
@@ -250,41 +262,79 @@ export default function EditarClientePage() {
                     required
                   />
                 </div>
+              </div>
+            </div>
 
+            {/* 3. Sección: Ubicación y Finanzas (NUEVA ESTRUCTURA) */}
+            <div>
+              <h3 className="text-lg font-semibold text-slate-900 mb-4">Ubicación y Finanzas</h3>
+              
+              <div className="mb-4">
+                <label htmlFor="cliDireccion" className="block text-sm font-medium text-slate-700 mb-2">
+                  Dirección
+                </label>
+                <textarea
+                  id="cliDireccion"
+                  name="cliDireccion"
+                  value={formData.cliDireccion}
+                  onChange={handleChange}
+                  className="w-full px-4 py-2 border border-slate-400 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition font text-slate-950 placeholder:text-slate-400"
+                  placeholder="Calle Principal 123"
+                  rows={2}
+                />
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
                 <div>
-                  <label htmlFor="cliFecNac" className="block text-sm font-medium text-slate-700 mb-2">
-                    Fecha de Nacimiento *
+                  <label htmlFor="cliDepartamento" className="block text-sm font-medium text-slate-700 mb-2">
+                    Departamento
                   </label>
                   <input
-                    id="cliFecNac"
-                    name="cliFecNac"
-                    type="date"
-                    value={formData.cliFecNac}
-                    onChange={handleChange}
-                    className="w-full px-4 py-2 border border-slate-400 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition font text-slate-950 placeholder:text-slate-400"
-                    required
-                  />
-                </div>
-
-                <div>
-                  <label htmlFor="cliRegion" className="block text-sm font-medium text-slate-700 mb-2">
-                    Región *
-                  </label>
-                  <input
-                    id="cliRegion"
-                    name="cliRegion"
+                    id="cliDepartamento"
+                    name="cliDepartamento"
                     type="text"
-                    value={formData.cliRegion}
+                    value={formData.cliDepartamento}
                     onChange={handleChange}
                     className="w-full px-4 py-2 border border-slate-400 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition font text-slate-950 placeholder:text-slate-400"
-                    placeholder="Lima"
-                    required
+                    placeholder="Ej. Lima"
                   />
                 </div>
 
+                <div>
+                  <label htmlFor="cliProvincia" className="block text-sm font-medium text-slate-700 mb-2">
+                    Provincia
+                  </label>
+                  <input
+                    id="cliProvincia"
+                    name="cliProvincia"
+                    type="text"
+                    value={formData.cliProvincia}
+                    onChange={handleChange}
+                    className="w-full px-4 py-2 border border-slate-400 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition font text-slate-950 placeholder:text-slate-400"
+                    placeholder="Ej. Lima"
+                  />
+                </div>
+
+                <div>
+                  <label htmlFor="cliDistrito" className="block text-sm font-medium text-slate-700 mb-2">
+                    Distrito
+                  </label>
+                  <input
+                    id="cliDistrito"
+                    name="cliDistrito"
+                    type="text"
+                    value={formData.cliDistrito}
+                    onChange={handleChange}
+                    className="w-full px-4 py-2 border border-slate-400 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition font text-slate-950 placeholder:text-slate-400"
+                    placeholder="Ej. Miraflores"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label htmlFor="cliIngresos" className="block text-sm font-medium text-slate-700 mb-2">
-                    Ingreso *
+                    Ingresos Mensuales *
                   </label>
                   <input
                     id="cliIngresos"
@@ -294,11 +344,17 @@ export default function EditarClientePage() {
                     value={formData.cliIngresos}
                     onChange={handleChange}
                     className="w-full px-4 py-2 border border-slate-400 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition font text-slate-950 placeholder:text-slate-400"
-                    placeholder="00.00"
+                    placeholder="0.00"
                     required
                   />
                 </div>
+              </div>
+            </div>
 
+            {/* Sección: Contacto */}
+            <div>
+              <h3 className="text-lg font-semibold text-slate-900 mb-4">Información de Contacto</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label htmlFor="cliTelefono" className="block text-sm font-medium text-slate-700 mb-2">
                     Celular *
@@ -316,13 +372,7 @@ export default function EditarClientePage() {
                     required
                   />
                 </div>
-              </div>
-            </div>
 
-            {/* Sección: Contacto */}
-            <div>
-              <h3 className="text-lg font-semibold text-slate-900 mb-4">Información de Contacto</h3>
-              <div className="space-y-4">
                 <div>
                   <label htmlFor="cliCorreo" className="block text-sm font-medium text-slate-700 mb-2">
                     Correo Electrónico *
@@ -338,39 +388,23 @@ export default function EditarClientePage() {
                     required
                   />
                 </div>
-
-                <div>
-                  <label htmlFor="cliDireccion" className="block text-sm font-medium text-slate-700 mb-2">
-                    Dirección
-                  </label>
-                  <textarea
-                    id="cliDireccion"
-                    name="cliDireccion"
-                    value={formData.cliDireccion}
-                    onChange={handleChange}
-                    className="w-full px-4 py-2 border border-slate-400 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition font text-slate-950 placeholder:text-slate-400"
-                    placeholder="Calle Principal 123, Apt 4B"
-                    rows={2}
-                  />
-                </div>
               </div>
             </div>
 
             {/* Botones */}
             <div className="flex gap-4 pt-6 border-t border-slate-200">
-              <Link
-                href="/clientes"
-                className="flex-1 px-6 py-3 border border-slate-300 text-slate-700 rounded-lg font-medium hover:bg-slate-50 transition text-center flex items-center justify-center"
-              >
-                Cancelar
-              </Link>
               <button
                 type="submit"
                 disabled={loading}
-                className="flex-1 px-6 py-3 bg-slate-900 hover:bg-slate-800 text-white rounded-lg font-medium transition disabled:opacity-50"
-              >
+                className="flex-1 px-6 py-3 border border-slate-300 text-slate-700 rounded-lg font-medium hover:bg-slate-50 transition text-center flex items-center justify-center"              >
                 {loading ? 'Guardando...' : 'Guardar Cambios'}
               </button>
+              <Link
+                href="/clientes"
+                className="flex-1 px-6 py-3 bg-slate-900 hover:bg-slate-800 text-white rounded-lg font-medium transition disabled:opacity-50"
+              >
+                Cancelar
+              </Link>
             </div>
           </form>
         </div>
