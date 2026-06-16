@@ -7,7 +7,6 @@ import Image from 'next/image'
 import { Eye, EyeOff } from 'lucide-react'
 
 export default function RegisterPage() {
-  // 1. Estados actualizados para coincidir con el Swagger
   const [adminDni, setAdminDni] = useState('')
   const [adminNombres, setAdminNombres] = useState('')
   const [adminApellidos, setAdminApellidos] = useState('')
@@ -26,7 +25,7 @@ export default function RegisterPage() {
     e.preventDefault()
     setError('')
 
-    // 2. Validación básica del frontend
+    // Validación básica del frontend
     if (!adminDni || !adminNombres || !adminApellidos || !adminCorreo || !password || !confirmPassword) {
       setError('Todos los campos son requeridos')
       return
@@ -50,41 +49,35 @@ export default function RegisterPage() {
     setLoading(true)
 
     try {
-      // 3. Petición fetch directa a tu endpoint de registro
-      // Nota: Verifica que la ruta de tu endpoint sea correcta (usualmente es /register o /usuarios)
+      // Armamos el JSON EXACTAMENTE como lo pide el Swagger, incluyendo el campo "activo"
+      const payload = {
+        adminDni,
+        adminNombres,
+        adminApellidos,
+        adminCorreo,
+        passwordHash: password, // Asumiendo que tu backend encripta esto al recibirlo
+        activo: true // <-- AGREGADO: Vital para que la BD no arroje error por null
+      }
+
       const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/usuarios`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        // 4. Armamos el JSON exactamente como lo pide Swagger
-        body: JSON.stringify({
-          adminDni,
-          adminNombres,
-          adminApellidos,
-          adminCorreo,
-          passwordHash: password // Mapeamos nuestro estado 'password' a la llave 'passwordHash'
-        })
+        body: JSON.stringify(payload)
       })
 
       if (!response.ok) {
-        try {
-          const errorData = await response.json()
-          throw new Error(errorData.message || 'Error al crear la cuenta')
-        } catch (parseError) {
-          throw new Error('Error en la API: Respuesta inesperada del servidor')
-        }
+        // Leemos el error exacto de Spring Boot (puede venir como 'message' o 'mensaje')
+        const errorData = await response.json().catch(() => null)
+        throw new Error(errorData?.mensaje || errorData?.message || 'Error en el servidor al crear la cuenta')
       }
 
-      // Si el registro es exitoso, redirigimos al login para que inicie sesión
+      // Si el registro es exitoso, redirigimos al login
       router.push('/login')
       
     } catch (err) {
-      if (err instanceof TypeError) {
-        setError('Error en la API: No se pudo contactar al servidor')
-      } else {
-        setError(err instanceof Error ? err.message : 'Error en la API')
-      }
+      setError(err instanceof Error ? err.message : 'Error en la API')
     } finally {
       setLoading(false)
     }
@@ -120,7 +113,7 @@ export default function RegisterPage() {
 
               {/* Error */}
               {error && (
-                <div className="mb-6 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm">
+                <div className="mb-6 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm font-bold">
                   {error}
                 </div>
               )}
@@ -143,7 +136,7 @@ export default function RegisterPage() {
                     }}
                     maxLength={8}
                     pattern="\d{8}"
-                    className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-slate-600 focus:border-transparent outline-none transition bg-white text-black placeholder:text-slate-400"
+                    className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-slate-600 focus:border-transparent outline-none transition bg-white text-black placeholder:text-slate-400 font-medium"
                     placeholder="00000000"
                     required
                   />
@@ -160,7 +153,7 @@ export default function RegisterPage() {
                       type="text"
                       value={adminNombres}
                       onChange={(e) => setAdminNombres(e.target.value)}
-                      className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-slate-600 focus:border-transparent outline-none transition bg-white text-black placeholder:text-slate-400"
+                      className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-slate-600 focus:border-transparent outline-none transition bg-white text-black placeholder:text-slate-400 font-medium"
                       placeholder="Juan"
                       required
                     />
@@ -174,7 +167,7 @@ export default function RegisterPage() {
                       type="text"
                       value={adminApellidos}
                       onChange={(e) => setAdminApellidos(e.target.value)}
-                      className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-slate-600 focus:border-transparent outline-none transition bg-white text-black placeholder:text-slate-400"
+                      className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-slate-600 focus:border-transparent outline-none transition bg-white text-black placeholder:text-slate-400 font-medium"
                       placeholder="Pérez"
                       required
                     />
@@ -191,7 +184,7 @@ export default function RegisterPage() {
                     type="email"
                     value={adminCorreo}
                     onChange={(e) => setAdminCorreo(e.target.value)}
-                    className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-slate-600 focus:border-transparent outline-none transition bg-white text-black placeholder:text-slate-400"
+                    className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-slate-600 focus:border-transparent outline-none transition bg-white text-black placeholder:text-slate-400 font-medium"
                     placeholder="tu@email.com"
                     required
                   />
@@ -208,7 +201,7 @@ export default function RegisterPage() {
                       type={showPassword ? 'text' : 'password'}
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
-                      className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-slate-600 focus:border-transparent outline-none transition bg-white text-black placeholder:text-slate-400 pr-10"
+                      className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-slate-600 focus:border-transparent outline-none transition bg-white text-black placeholder:text-slate-400 pr-10 font-medium"
                       placeholder="••••••••"
                       required
                     />
@@ -233,7 +226,7 @@ export default function RegisterPage() {
                       type={showConfirmPassword ? 'text' : 'password'}
                       value={confirmPassword}
                       onChange={(e) => setConfirmPassword(e.target.value)}
-                      className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-slate-600 focus:border-transparent outline-none transition bg-white text-black placeholder:text-slate-400 pr-10"
+                      className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-slate-600 focus:border-transparent outline-none transition bg-white text-black placeholder:text-slate-400 pr-10 font-medium"
                       placeholder="••••••••"
                       required
                     />
