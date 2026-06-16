@@ -18,9 +18,9 @@ const formatearPorcentaje = (valor: number) => {
 // --- 2. INTERFACES REALES ---
 interface Cliente {
   idCliente: number
-  nombres: string
-  apellidos: string
-  dni?: string 
+  cliDni: string      
+  cliNombres: string  
+  cliApellidos: string 
 }
 
 interface Vehiculo {
@@ -93,7 +93,7 @@ export default function ReportesPage() {
   // 2. Funciones de cruce de datos
   const getClienteNombre = (id: number) => {
     const c = clientes.find(c => c.idCliente === id)
-    return c ? `${c.nombres} ${c.apellidos}` : `ID: ${id}`
+    return c ? `${c.cliNombres} ${c.cliApellidos}` : `ID: ${id}`
   }
 
   const getVehiculoNombre = (id: number) => {
@@ -205,7 +205,7 @@ Estado: ${c.estado}
                 <option value="">-- Todos los Clientes --</option>
                 {clientes.map(c => (
                   <option key={c.idCliente} value={c.idCliente.toString()}>
-                    {c.nombres} {c.apellidos}
+                    {c.cliNombres} {c.cliApellidos}
                   </option>
                 ))}
               </select>
