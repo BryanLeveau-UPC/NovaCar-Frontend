@@ -7,11 +7,11 @@ import { FileDown, TrendingUp, PieChart } from 'lucide-react'
 
 // --- 1. UTILIDADES LOCALES (Alto Contraste) ---
 const formatearMoneda = (valor: number) => {
-  return `S/ ${valor.toLocaleString('es-PE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+  return `S/ ${(valor || 0).toLocaleString('es-PE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
 }
 
 const formatearPorcentaje = (valor: number) => {
-  return `${valor.toLocaleString('es-PE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}%`
+  return `${(valor || 0).toLocaleString('es-PE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}%`
 }
 // ----------------------------------------------
 
@@ -37,7 +37,7 @@ interface Credito {
   montoFinanciado: number
   cuotaMensualRegular: number
   tcea: number
-  plazoMeses?: number // Asumimos que tu backend devuelve el plazo
+  plazoMeses?: number 
   estado: string
   fechaCreacion?: string
 }
@@ -108,7 +108,7 @@ export default function ReportesPage() {
     return true
   })
 
-  // 4. Cálculos de KPIs
+  // 4. Cálculos de KPIs Protegidos
   const totalOperaciones = creditosFiltrados.length
   const montoTotalFinanciado = creditosFiltrados.reduce((sum, c) => sum + (c.montoFinanciado || 0), 0)
   
@@ -116,11 +116,10 @@ export default function ReportesPage() {
     ? creditosFiltrados.reduce((sum, c) => sum + (c.cuotaMensualRegular || 0), 0) / totalOperaciones
     : 0
 
-  // Estimación de intereses: (Cuota * Plazo) - Capital. (Si no tienes el plazo exacto, asumimos 0 temporalmente)
   const interesesTotales = creditosFiltrados.reduce((sum, c) => {
     const plazo = c.plazoMeses || 0
-    const totalPagado = c.cuotaMensualRegular * plazo
-    const interesOperacion = totalPagado > c.montoFinanciado ? totalPagado - c.montoFinanciado : 0
+    const totalPagado = (c.cuotaMensualRegular || 0) * plazo
+    const interesOperacion = totalPagado > (c.montoFinanciado || 0) ? totalPagado - (c.montoFinanciado || 0) : 0
     return sum + interesOperacion
   }, 0)
 
@@ -128,7 +127,7 @@ export default function ReportesPage() {
     ? creditosFiltrados.reduce((sum, c) => sum + (c.tcea || 0), 0) / totalOperaciones
     : 0
 
-  // 5. Exportar Reporte a TXT/PDF (Datos Reales)
+  // 5. Exportar Reporte a TXT/PDF (Datos Reales Protegidos)
   const handleExport = () => {
     const content = `
 REPORTE DE OPERACIONES - AUTO-COMPRA INTELIGENTE
@@ -149,9 +148,9 @@ ${creditosFiltrados.map(c => `
 Operación: CRD-${c.idCredito.toString().padStart(5, '0')}
 Cliente: ${getClienteNombre(c.idCliente)}
 Vehículo: ${getVehiculoNombre(c.idOferta)}
-Monto Financiado: ${formatearMoneda(c.montoFinanciado)}
-Cuota Mensual: ${formatearMoneda(c.cuotaMensualRegular)}
-TCEA: ${formatearPorcentaje(c.tcea * 100)}
+Monto Financiado: ${formatearMoneda(c.montoFinanciado || 0)}
+Cuota Mensual: ${formatearMoneda(c.cuotaMensualRegular || 0)}
+TCEA: ${formatearPorcentaje((c.tcea || 0) * 100)}
 Estado: ${c.estado}
 ---`).join('\n')}
     `
@@ -200,7 +199,7 @@ Estado: ${c.estado}
                 id="filtroCliente"
                 value={filtroCliente}
                 onChange={(e) => setFiltroCliente(e.target.value)}
-                className="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-600 outline-none transition font-medium text-slate-900"
+                className="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-600 outline-none transition  text-slate-950 bg-white"
               >
                 <option value="">-- Todos los Clientes --</option>
                 {clientes.map(c => (
@@ -219,7 +218,7 @@ Estado: ${c.estado}
                 id="filtroVehiculo"
                 value={filtroVehiculo}
                 onChange={(e) => setFiltroVehiculo(e.target.value)}
-                className="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-600 outline-none transition font-medium text-slate-900"
+                className="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-600 outline-none transition  text-slate-950 bg-white"
               >
                 <option value="">-- Todos los Vehículos --</option>
                 {vehiculos.map(v => (
@@ -242,7 +241,7 @@ Estado: ${c.estado}
           </div>
         </div>
 
-        {/* 2. KPIs Financieros (Métricas Clave) */}
+        {/* 2. KPIs Financieros */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           <div className="bg-gradient-to-br from-blue-50 to-blue-100 border border-blue-200 rounded-xl p-6 shadow-sm">
             <div className="flex items-start justify-between">
@@ -278,7 +277,7 @@ Estado: ${c.estado}
           </div>
         </div>
 
-        {/* 3. Tabla de Resultados */}
+        {/* 3. Tabla de Resultados Protegida */}
         <div className="bg-white border border-slate-300 rounded-lg overflow-hidden shadow-sm">
           <div className="p-6 border-b border-slate-300 bg-slate-50">
             <h3 className="text-lg font-extrabold text-slate-900">Desglose de Operaciones</h3>
@@ -286,7 +285,7 @@ Estado: ${c.estado}
           
           {creditosFiltrados.length === 0 ? (
             <div className="p-12 text-center">
-              <p className="text-slate-800 font-bold text-lg">No hay datos que coincidan con los filtros seleccionados.</p>
+              <p className="text-slate-800 text-lg">No hay datos que coincidan con los filtros seleccionados.</p>
             </div>
           ) : (
             <div className="overflow-x-auto">
@@ -304,23 +303,24 @@ Estado: ${c.estado}
                 <tbody className="divide-y divide-slate-200">
                   {creditosFiltrados.map((cred) => (
                     <tr key={cred.idCredito} className="hover:bg-slate-50 transition">
-                      <td className="px-6 py-4 font-bold text-slate-900">
+                      <td className="px-6 py-4  text-slate-900">
                         CRD-{cred.idCredito.toString().padStart(5, '0')}
                       </td>
-                      <td className="px-6 py-4 font-bold text-slate-800">
+                      <td className="px-6 py-4  text-slate-800">
                         {getClienteNombre(cred.idCliente)}
                       </td>
                       <td className="px-6 py-4 font-bold text-slate-700">
                         {getVehiculoNombre(cred.idOferta)}
                       </td>
-                      <td className="px-6 py-4 text-right font-extrabold text-slate-900">
-                        {formatearMoneda(cred.montoFinanciado)}
+                      {/* PROTEGIDO: Respaldo ante valores nulos de la base de datos */}
+                      <td className="px-6 py-4 text-right  text-slate-900">
+                        {formatearMoneda(cred.montoFinanciado || 0)}
                       </td>
                       <td className="px-6 py-4 text-right font-bold text-blue-700">
-                        {formatearMoneda(cred.cuotaMensualRegular)}
+                        {formatearMoneda(cred.cuotaMensualRegular || 0)}
                       </td>
                       <td className="px-6 py-4 text-center font-extrabold text-green-700">
-                        {formatearPorcentaje(cred.tcea * 100)}
+                        {formatearPorcentaje((cred.tcea || 0) * 100)}
                       </td>
                     </tr>
                   ))}
@@ -336,7 +336,6 @@ Estado: ${c.estado}
             <div className="bg-white border border-slate-300 rounded-lg p-6 shadow-sm">
               <h3 className="text-lg font-extrabold text-slate-900 mb-6 border-b border-slate-200 pb-3">Análisis por Plazo (Meses)</h3>
               <div className="space-y-5">
-                {/* Agrupación dinámica por plazos existentes */}
                 {Array.from(new Set(creditosFiltrados.map(c => c.plazoMeses || 0)))
                   .sort((a, b) => a - b)
                   .map(plazo => {
@@ -356,7 +355,7 @@ Estado: ${c.estado}
                         </div>
                       </div>
                     ) : null
-                })}
+                  })}
               </div>
             </div>
 
