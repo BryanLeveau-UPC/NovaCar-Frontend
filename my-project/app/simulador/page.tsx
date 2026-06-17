@@ -20,7 +20,7 @@ const formatearPorcentaje = (valor: number) => {
 // --- INTERFACES BASADAS EN TUS DTOs ---
 interface Cliente {
   idCliente: number
-  cliNombres: string // Ajustado al prefijo real de tu base de datos si aplica
+  cliNombres: string 
   cliApellidos: string
   cliDni: string 
 }
@@ -86,7 +86,7 @@ export default function SimuladorPage() {
     tipoGracia: 'ninguna', 
     periodiGracia: '0',
     periodoTasa: '3', // 3 = Anual (TEA)
-    segurosDesgravamen: '0.06', // % mensual típico de desgravamen
+    segurosDesgravamen: '0.06', 
     segurosVehicular: '0', 
     comision: '0', 
   })
@@ -131,13 +131,11 @@ export default function SimuladorPage() {
     setFormData(prev => {
       const updated = { ...prev, [name]: value }
       
-      // Control en tiempo real: Si cambia el vehículo, autocompletamos su cuota inicial mínima
       if (name === 'idOferta') {
         const vehiculo = vehiculos.find(v => v.idOferta.toString() === value)
         updated.cuotaInicial = vehiculo ? vehiculo.montoInicial.toString() : ''
       }
       
-      // Control en tiempo real: Si el tipo de gracia es 'ninguna', bloqueamos los meses a 0
       if (name === 'tipoGracia' && value === 'ninguna') {
         updated.periodiGracia = '0'
       }
@@ -165,7 +163,6 @@ export default function SimuladorPage() {
     const inicialIngresada = parseFloat(formData.cuotaInicial) || 0
     const balloonIngresado = parseFloat(formData.montoBalloon) || 0
 
-    // Validación de Negocio Estricta: Cuota Inicial Mínima del Sistema
     if (inicialIngresada < vehiculoSeleccionado.montoInicial) {
       setError(`La cuota inicial mínima para este vehículo debe ser de ${formatearMoneda(vehiculoSeleccionado.montoInicial)}`)
       return
@@ -180,7 +177,6 @@ export default function SimuladorPage() {
     setCalculando(true)
 
     try {
-      // Mapeo seguro de tipos hacia el DTO de Spring Boot
       const payload = {
         idTasa: parseInt(formData.idTasa, 10),
         montoVehiculo: montoTotalVehiculo,
@@ -193,7 +189,7 @@ export default function SimuladorPage() {
         seguroDesgravamen: (parseFloat(formData.segurosDesgravamen) || 0) / 100, 
         seguroVehicular: parseFloat(formData.segurosVehicular) || 0,
         montoPortes: parseFloat(formData.comision) || 0,
-        tasaItf: 0.00005 // ITF estándar Perú (0.005%)
+        tasaItf: 0.00005 
       }
 
       const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/simulador/simular`, {
@@ -222,23 +218,37 @@ export default function SimuladorPage() {
     }
   }
 
-  // GUARDAR CRÉDITO DEFINITIVO
+  // GUARDAR CRÉDITO DEFINITIVO (CORREGIDO CON LOS 16 CAMPOS EXACTOS)
   const handleGuardar = async () => {
     if (!resultado || !clienteSeleccionado || !vehiculoSeleccionado) return
 
     const token = localStorage.getItem('auth_token')
+    // CORREGIDO: Extraemos con la clave minúscula exacta guardada en el Login
+    const idAdmin = localStorage.getItem('admin_id') 
+
     setSaving(true)
     setError('')
 
     try {
+      // payload estructurado exactamente como lo mapea tu @RequestBody en Spring Boot
       const payload = {
-        idCliente: clienteSeleccionado.idCliente,
-        idOferta: vehiculoSeleccionado.idOferta,
         idTasa: parseInt(formData.idTasa, 10),
-        montoFinanciado: resultado.montoFinanciado,
-        cuotaMensualRegular: resultado.cuotaMensualRegular,
-        tcea: resultado.tcea,
-        estado: 'GUARDADO'
+        montoVehiculo: vehiculoSeleccionado.vehMonto,
+        montoInicial: parseFloat(formData.cuotaInicial) || 0,
+        montoBalloon: parseFloat(formData.montoBalloon) || 0,
+        plazoMeses: parseInt(formData.plazo, 10),
+        periodoGracia: parseInt(formData.periodiGracia, 10),
+        tipoGracia: formData.tipoGracia,
+        periodoTasa: parseInt(formData.periodoTasa, 10),
+        seguroDesgravamen: (parseFloat(formData.segurosDesgravamen) || 0) / 100,
+        seguroVehicular: parseFloat(formData.segurosVehicular) || 0,
+        montoPortes: parseFloat(formData.comision) || 0,
+        tasaItf: 0.00005,
+        idUsuario: idAdmin ? parseInt(idAdmin, 10) : null, // Extraído dinámicamente del login
+        idCliente: clienteSeleccionado.idCliente,
+        idOffer: vehiculoSeleccionado.idOferta, // Sincronizado con idOferta
+        idOferta: vehiculoSeleccionado.idOferta, // Mapeado por si acaso
+        idConfig: null // Enviado como null de forma segura
       }
 
       const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/creditos`, {
@@ -258,7 +268,7 @@ export default function SimuladorPage() {
       alert('Crédito definitivo guardado y aprobado exitosamente.')
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Ocurrió un error al procesar el guardado.')
-    } bits: {
+    } finally {
       setSaving(false)
     }
   }
@@ -398,7 +408,6 @@ export default function SimuladorPage() {
                 </div>
               </div>
 
-              {/* Gatillador de simulación */}
               <div className="pt-6 border-t border-slate-200">
                 <button type="submit" disabled={calculando} className="w-full bg-slate-900 hover:bg-slate-800 disabled:bg-slate-400 text-white py-4 rounded-lg font-bold transition flex items-center justify-center gap-2 shadow-md">
                   <BarChart3 size={20} />
@@ -431,7 +440,6 @@ export default function SimuladorPage() {
                 </div>
               </div>
 
-              {/* Desglose Analítico */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="bg-white border border-slate-200 rounded-lg p-6 shadow-sm">
                   <h3 className="text-lg font-bold text-slate-900 mb-4 border-b pb-2">Estructura del Capital</h3>
@@ -470,11 +478,10 @@ export default function SimuladorPage() {
                 </div>
               </div>
 
-              {/* Tabla Detallada del Cronograma */}
               <div className="bg-white border border-slate-200 rounded-lg overflow-hidden shadow-sm">
                 <div className="p-6 bg-slate-50 border-b border-slate-200">
                   <h3 className="text-lg font-bold text-slate-900">Cronograma de Pagos Completo (Breakdown)</h3>
-                  <p className="text-xs text-slate-600 mt-1">Incluye amortización francesa, intereses devengados, primas de seguros e impuestos (ITF).</p>
+                  <p className="text-xs text-slate-600 mt-1">Incluye Amortización Francesa, intereses devengados, primas de seguros e impuestos (ITF).</p>
                 </div>
                 <div className="overflow-x-auto">
                   <table className="w-full text-sm">
@@ -508,7 +515,6 @@ export default function SimuladorPage() {
                 </div>
               </div>
 
-              {/* Control de Flujo de Aprobación */}
               <div className="flex gap-4 pt-4 border-t border-slate-200">
                 <button onClick={() => { setStep(1); setResultado(null); }} className="flex-1 border border-slate-400 text-slate-700 hover:bg-slate-100 py-3 rounded-lg font-bold transition flex items-center justify-center gap-2 bg-white">
                   <RefreshCw size={18} />

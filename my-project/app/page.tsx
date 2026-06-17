@@ -45,7 +45,7 @@ export default function LoginPage() {
 
       if (data.token) {
         localStorage.setItem('auth_token', data.token)
-        // Guardamos también los datos reales del usuario que vienen de tu AuthController
+        localStorage.setItem('admin_id', data.idUsuario)
         localStorage.setItem('admin_nombres', data.adminNombres)
         localStorage.setItem('admin_dni', data.adminDni)
       }

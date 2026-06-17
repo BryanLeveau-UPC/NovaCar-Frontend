@@ -131,7 +131,7 @@ export default function HistorialPage() {
   if (loading) {
     return (
       <ProtectedLayout title="Historial y Cobranzas">
-        <div className="flex justify-center items-center h-64 text-slate-800 font-bold text-lg">
+        <div className="flex justify-center items-center h-64 text-slate-800 text-lg">
           Cargando historial de base de datos...
         </div>
       </ProtectedLayout>
@@ -160,7 +160,7 @@ export default function HistorialPage() {
           </div>
         ) : (
           <>
-            {/* Resumen Superior */}
+            {/* Resumen Superior Protegido */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div className="bg-white border border-slate-300 rounded-lg p-6 shadow-sm">
                 <p className="text-slate-800 font-bold text-sm mb-2 uppercase tracking-wider">Total Operaciones</p>
@@ -169,7 +169,7 @@ export default function HistorialPage() {
               <div className="bg-white border border-slate-300 rounded-lg p-6 shadow-sm">
                 <p className="text-slate-800 font-bold text-sm mb-2 uppercase tracking-wider">Capital Financiado (Total)</p>
                 <p className="text-3xl font-extrabold text-blue-700">
-                  {formatearMoneda(creditos.reduce((sum, c) => sum + c.montoFinanciado, 0))}
+                  {formatearMoneda(creditos.reduce((sum, c) => sum + (c.montoFinanciado || 0), 0) || 0)}
                 </p>
               </div>
               <div className="bg-white border border-slate-300 rounded-lg p-6 shadow-sm">
@@ -177,8 +177,8 @@ export default function HistorialPage() {
                 <p className="text-3xl font-extrabold text-green-700">
                   {formatearPorcentaje(
                     creditos.length > 0 
-                    ? creditos.reduce((sum, c) => sum + c.tcea, 0) / creditos.length * 100 
-                    : 0
+                      ? (creditos.reduce((sum, c) => sum + (c.tcea || 0), 0) / creditos.length) * 100 
+                      : 0
                   )}
                 </p>
               </div>
@@ -204,10 +204,10 @@ export default function HistorialPage() {
                         <td className="px-6 py-4 text-sm font-bold text-slate-900">CRD-{cred.idCredito.toString().padStart(5, '0')}</td>
                         <td className="px-6 py-4 text-sm font-bold text-slate-800">Cliente #{cred.idCliente}</td>
                         <td className="px-6 py-4 text-sm font-extrabold text-slate-900 text-right">
-                          {formatearMoneda(cred.montoFinanciado)}
+                          {formatearMoneda(cred.montoFinanciado || 0)}
                         </td>
                         <td className="px-6 py-4 text-sm font-bold text-blue-700 text-right">
-                          {formatearMoneda(cred.cuotaMensualRegular)}
+                          {formatearMoneda(cred.cuotaMensualRegular || 0)}
                         </td>
                         <td className="px-6 py-4 text-center">
                           <span className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider ${
@@ -244,18 +244,18 @@ export default function HistorialPage() {
               {/* Header del Modal */}
               <div className="bg-slate-900 text-white px-6 py-4 flex items-center justify-between shrink-0">
                 <h3 className="text-xl font-extrabold">Gestión de Cronograma (CRD-{selectedCredito.idCredito.toString().padStart(5, '0')})</h3>
-                <button onClick={() => setSelectedCredito(null)} className="text-white hover:text-red-400 font-bold text-2xl transition">✕</button>
+                <button onClick={() => setSelectedCredito(null)} className="text-white hover:text-red-400 text-2xl transition">✕</button>
               </div>
 
               <div className="p-6 overflow-y-auto grow">
                 <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6 grid grid-cols-3 gap-4">
                   <div>
                     <p className="text-blue-900 text-xs font-extrabold uppercase tracking-wider mb-1">Monto Financiado</p>
-                    <p className="text-xl font-black text-blue-700">{formatearMoneda(selectedCredito.montoFinanciado)}</p>
+                    <p className="text-xl font-black text-blue-700">{formatearMoneda(selectedCredito.montoFinanciado || 0)}</p>
                   </div>
                   <div>
                     <p className="text-blue-900 text-xs font-extrabold uppercase tracking-wider mb-1">Cuota Mensual</p>
-                    <p className="text-xl font-black text-blue-700">{formatearMoneda(selectedCredito.cuotaMensualRegular)}</p>
+                    <p className="text-xl font-black text-blue-700">{formatearMoneda(selectedCredito.cuotaMensualRegular || 0)}</p>
                   </div>
                   <div>
                     <p className="text-blue-900 text-xs font-extrabold uppercase tracking-wider mb-1">TCEA</p>
@@ -282,18 +282,20 @@ export default function HistorialPage() {
                           <th className="px-4 py-3 text-center font-extrabold text-slate-900">Acción</th>
                         </tr>
                       </thead>
-                      <tbody className="divide-y divide-slate-300">
+                      <tbody className="divide-y divide-slate-300  text-slate-950">
                         {cronograma.map((pago) => (
                           <tr key={pago.idCuota} className={`transition ${pago.estadoPago === 'pagado' ? 'bg-green-50' : 'hover:bg-slate-100'}`}>
-                            <td className="px-4 py-3 font-extrabold text-slate-900">{pago.numeroCuota}</td>
-                            <td className="px-4 py-3 font-bold text-slate-800">
+                            <td className="px-4 py-3  text-slate-900">{pago.numeroCuota}</td>
+                            <td className="px-4 py-3  text-slate-800">
                               {pago.fechaVencimiento ? new Date(pago.fechaVencimiento).toLocaleDateString('es-PE') : 'N/A'}
                             </td>
-                            <td className="px-4 py-3 text-right font-extrabold text-slate-900">
-                              {formatearMoneda(pago.cuotaTotal)}
+                            {/* PROTEGIDO: Agregado respaldo || 0 para evitar crash en toLocaleString */}
+                            <td className="px-4 py-3 text-right font-bold text-slate-900">
+                              {formatearMoneda(pago.cuotaTotal || 0)}
                             </td>
-                            <td className="px-4 py-3 text-right font-bold text-slate-700">
-                              {formatearMoneda(pago.saldoFinal)}
+                            {/* PROTEGIDO: Agregado respaldo || 0 */}
+                            <td className="px-4 py-3 text-right text-slate-700">
+                              {formatearMoneda(pago.saldoFinal || 0)}
                             </td>
                             <td className="px-4 py-3 text-center">
                               {pago.estadoPago === 'pagado' ? (
@@ -310,7 +312,7 @@ export default function HistorialPage() {
                               {pago.estadoPago !== 'pagado' && (
                                 <button
                                   onClick={() => handlePagarCuota(pago.idCuota)}
-                                  className="inline-flex items-center gap-1 px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded font-bold text-xs uppercase tracking-wider transition shadow-sm"
+                                  className="inline-flex items-center gap-1 px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded text-xs uppercase tracking-wider transition shadow-sm"
                                 >
                                   <CheckSquare size={14} /> Cobrar
                                 </button>
