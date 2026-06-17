@@ -201,9 +201,9 @@ export default function HistorialPage() {
                   <tbody>
                     {creditos.map((cred) => (
                       <tr key={cred.idCredito} className="border-t border-slate-300 hover:bg-slate-100 transition">
-                        <td className="px-6 py-4 text-sm font-bold text-slate-900">CRD-{cred.idCredito.toString().padStart(5, '0')}</td>
-                        <td className="px-6 py-4 text-sm font-bold text-slate-800">Cliente #{cred.idCliente}</td>
-                        <td className="px-6 py-4 text-sm font-extrabold text-slate-900 text-right">
+                        <td className="px-6 py-4 text-sm text-slate-900">CRD-{cred.idCredito.toString().padStart(5, '0')}</td>
+                        <td className="px-6 py-4 text-sm text-slate-800">Cliente #{cred.idCliente}</td>
+                        <td className="px-6 py-4 text-sm text-slate-900 text-right">
                           {formatearMoneda(cred.montoFinanciado || 0)}
                         </td>
                         <td className="px-6 py-4 text-sm font-bold text-blue-700 text-right">
