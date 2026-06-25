@@ -13,6 +13,7 @@ interface ProtectedLayoutProps {
 export const ProtectedLayout = ({ children, title }: ProtectedLayoutProps) => {
   const router = useRouter()
   const [isAuthenticated, setIsAuthenticated] = useState(false)
+  const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false)
 
     useEffect(() => {
         const verificarSeguridad = async () => {
@@ -45,15 +46,21 @@ export const ProtectedLayout = ({ children, title }: ProtectedLayoutProps) => {
   return (
     <div className="flex h-screen bg-white">
       {/* Sidebar */}
-      <Sidebar />
+      <Sidebar
+        isMobileOpen={isMobileSidebarOpen}
+        onClose={() => setIsMobileSidebarOpen(false)}
+      />
 
       {/* Main Content */}
       <div className="flex-1 flex flex-col overflow-hidden">
         {/* Header */}
-        <Header title={title} />
+        <Header
+          title={title}
+          onMenuToggle={() => setIsMobileSidebarOpen((current) => !current)}
+        />
 
         {/* Content Area */}
-        <main className="flex-1 overflow-auto p-8">
+        <main className="flex-1 overflow-auto p-4 sm:p-6 lg:p-8">
           {children}
         </main>
       </div>

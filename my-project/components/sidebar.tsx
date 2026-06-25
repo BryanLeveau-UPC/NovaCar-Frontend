@@ -10,6 +10,7 @@ import {
   History,
   BarChart3,
   Settings,
+  X,
 } from 'lucide-react'
 import { LogoNovaCar } from './logo-nova-car' 
 
@@ -17,6 +18,11 @@ interface NavItem {
   label: string
   href: string
   icon: React.ReactNode
+}
+
+interface SidebarProps {
+  isMobileOpen?: boolean
+  onClose?: () => void
 }
 
 const navItems: NavItem[] = [
@@ -30,13 +36,33 @@ const navItems: NavItem[] = [
   { label: 'CUENTA', href: '/cuenta', icon: <Settings className="w-5 h-5" /> },
 ]
 
-export const Sidebar = () => {
+export const Sidebar = ({ isMobileOpen = false, onClose }: SidebarProps) => {
   const pathname = usePathname()
 
   return (
-    <aside className="w-64 bg-slate-900 text-white min-h-screen flex flex-col">
-    {/* Logo Section actualizado */}
+    <>
+      <div
+        className={`fixed inset-0 z-40 bg-slate-950/50 transition-opacity md:hidden ${
+          isMobileOpen ? 'opacity-100' : 'pointer-events-none opacity-0'
+        }`}
+        onClick={onClose}
+      />
+
+      <aside
+        className={`fixed inset-y-0 left-0 z-50 flex min-h-screen w-64 flex-col bg-slate-900 text-white transition-transform md:static md:z-auto md:translate-x-0 ${
+          isMobileOpen ? 'translate-x-0' : '-translate-x-full'
+        }`}
+      >
+      {/* Logo Section actualizado */}
       <div className="px-6 py-6 border-b border-slate-800 flex flex-col items-center justify-center">
+        <button
+          type="button"
+          onClick={onClose}
+          className="absolute right-4 top-4 rounded-lg p-2 text-slate-400 transition hover:bg-slate-800 hover:text-white md:hidden"
+          aria-label="Cerrar menu"
+        >
+          <X className="h-5 w-5" />
+        </button>
         {/* Envolvemos el logo y le aplicamos el filtro para volverlo blanco */}
         <div className="brightness-0 invert">
           <LogoNovaCar size="sm" />
@@ -52,6 +78,7 @@ export const Sidebar = () => {
             <Link
               key={item.href}
               href={item.href}
+              onClick={onClose}
               className={`flex items-center gap-3 px-4 py-3 rounded-lg font-medium transition ${
                 isActive
                   ? 'bg-slate-800 text-white shadow-sm'
@@ -78,6 +105,7 @@ export const Sidebar = () => {
           </div>
         </div>
       </div>
-    </aside>
+      </aside>
+    </>
   )
 }
