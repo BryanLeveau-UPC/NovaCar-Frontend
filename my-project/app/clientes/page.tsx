@@ -123,47 +123,83 @@ export default function ClientesPage() {
 
         {/* Tabla de Clientes */}
         {clientes.length > 0 ? (
-          <div className="bg-white border border-slate-200 rounded-lg overflow-hidden">
-            <table className="w-full">
-              <thead className="bg-slate-50 border-b border-slate-200">
-                <tr>
-                  <th className="px-6 py-3 text-left text-sm font-semibold text-slate-900">Nombres</th>
-                  <th className="px-6 py-3 text-left text-sm font-semibold text-slate-900">Apellidos</th>
-                  <th className="px-6 py-3 text-left text-sm font-semibold text-slate-900">Email</th>
-                  <th className="px-6 py-3 text-left text-sm font-semibold text-slate-900">Teléfono</th>
-                  <th className="px-6 py-3 text-left text-sm font-semibold text-slate-900">Acciones</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-200">
-                {clientes.map((cliente) => (
-                  <tr key={cliente.idCliente} className="hover:bg-slate-50 transition">
-                    {/* 2. CORRECCIÓN: Leemos las propiedades con el prefijo "cli" */}
-                    <td className="px-6 py-4 text-sm text-slate-900">{cliente.cliNombres}</td>
-                    <td className="px-6 py-4 text-sm text-slate-900">{cliente.cliApellidos}</td>
-                    <td className="px-6 py-4 text-sm text-slate-600">{cliente.cliCorreo}</td>
-                    <td className="px-6 py-4 text-sm text-slate-600">{cliente.cliTelefono}</td>
-                    <td className="px-6 py-4 text-sm">
-                      <div className="flex items-center gap-2">
-                        <Link
-                          href={`/clientes/${cliente.idCliente}`}
-                          className="inline-flex items-center gap-2 px-3 py-1.5 bg-blue-100 hover:bg-blue-200 text-blue-700 rounded-lg transition text-sm"
-                        >
-                          <Edit2 className="w-4 h-4" />
-                          Editar
-                        </Link>
-                        <button
-                          onClick={() => handleDelete(cliente.idCliente)}
-                          className="inline-flex items-center gap-2 px-3 py-1.5 bg-red-100 hover:bg-red-200 text-red-700 rounded-lg transition text-sm"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                          Eliminar
-                        </button>
-                      </div>
-                    </td>
+          <div className="space-y-4">
+            <div className="grid gap-4 md:hidden">
+              {clientes.map((cliente) => (
+                <article
+                  key={cliente.idCliente}
+                  className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm"
+                >
+                  <div className="mb-4">
+                    <p className="text-base font-bold text-slate-900">
+                      {cliente.cliNombres} {cliente.cliApellidos}
+                    </p>
+                    <p className="mt-1 text-sm text-slate-600">{cliente.cliCorreo}</p>
+                    <p className="mt-1 text-sm text-slate-500">{cliente.cliTelefono}</p>
+                  </div>
+
+                  <div className="flex gap-2">
+                    <Link
+                      href={`/clientes/${cliente.idCliente}`}
+                      className="inline-flex flex-1 items-center justify-center gap-2 rounded-lg bg-blue-100 px-3 py-2 text-sm text-blue-700 transition hover:bg-blue-200"
+                    >
+                      <Edit2 className="w-4 h-4" />
+                      Editar
+                    </Link>
+                    <button
+                      onClick={() => handleDelete(cliente.idCliente)}
+                      className="inline-flex flex-1 items-center justify-center gap-2 rounded-lg bg-red-100 px-3 py-2 text-sm text-red-700 transition hover:bg-red-200"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                      Eliminar
+                    </button>
+                  </div>
+                </article>
+              ))}
+            </div>
+
+            <div className="hidden overflow-hidden rounded-lg border border-slate-200 bg-white md:block">
+              <table className="w-full">
+                <thead className="bg-slate-50 border-b border-slate-200">
+                  <tr>
+                    <th className="px-6 py-3 text-left text-sm font-semibold text-slate-900">Nombres</th>
+                    <th className="px-6 py-3 text-left text-sm font-semibold text-slate-900">Apellidos</th>
+                    <th className="px-6 py-3 text-left text-sm font-semibold text-slate-900">Email</th>
+                    <th className="px-6 py-3 text-left text-sm font-semibold text-slate-900">Teléfono</th>
+                    <th className="px-6 py-3 text-left text-sm font-semibold text-slate-900">Acciones</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody className="divide-y divide-slate-200">
+                  {clientes.map((cliente) => (
+                    <tr key={cliente.idCliente} className="hover:bg-slate-50 transition">
+                      {/* 2. CORRECCIÓN: Leemos las propiedades con el prefijo "cli" */}
+                      <td className="px-6 py-4 text-sm text-slate-900">{cliente.cliNombres}</td>
+                      <td className="px-6 py-4 text-sm text-slate-900">{cliente.cliApellidos}</td>
+                      <td className="px-6 py-4 text-sm text-slate-600">{cliente.cliCorreo}</td>
+                      <td className="px-6 py-4 text-sm text-slate-600">{cliente.cliTelefono}</td>
+                      <td className="px-6 py-4 text-sm">
+                        <div className="flex items-center gap-2">
+                          <Link
+                            href={`/clientes/${cliente.idCliente}`}
+                            className="inline-flex items-center gap-2 px-3 py-1.5 bg-blue-100 hover:bg-blue-200 text-blue-700 rounded-lg transition text-sm"
+                          >
+                            <Edit2 className="w-4 h-4" />
+                            Editar
+                          </Link>
+                          <button
+                            onClick={() => handleDelete(cliente.idCliente)}
+                            className="inline-flex items-center gap-2 px-3 py-1.5 bg-red-100 hover:bg-red-200 text-red-700 rounded-lg transition text-sm"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                            Eliminar
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </div>
         ) : (
           !error && (
