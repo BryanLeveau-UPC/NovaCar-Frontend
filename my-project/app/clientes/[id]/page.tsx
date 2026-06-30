@@ -51,6 +51,9 @@ export default function EditarClientePage() {
     activo: true 
   })
 
+  // Determina si el formulario debe estar bloqueado basándose en el estado del cliente
+  const estaBloqueado = !formData.activo;
+
   useEffect(() => {
     const fetchUbigeo = async () => {
       try {
@@ -261,19 +264,19 @@ export default function EditarClientePage() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label htmlFor="cliDni" className="block text-sm font-medium text-slate-700 mb-2">DNI *</label>
-                  <input id="cliDni" name="cliDni" type="text" inputMode="numeric" maxLength={8} value={formData.cliDni} onChange={handleChange} className={inputClass} placeholder="12345678" required />
+                  <input id="cliDni" name="cliDni" type="text" inputMode="numeric" maxLength={8} value={formData.cliDni} onChange={handleChange} disabled={estaBloqueado} className={`${inputClass} ${estaBloqueado ? 'bg-slate-100 cursor-not-allowed' : ''}`} placeholder="12345678" required />
                 </div>
                 <div>
                   <label htmlFor="cliFecNac" className="block text-sm font-medium text-slate-700 mb-2">Fecha de Nacimiento *</label>
-                  <input id="cliFecNac" name="cliFecNac" type="date" value={formData.cliFecNac} onChange={handleChange} className={inputClass} required />
+                  <input id="cliFecNac" name="cliFecNac" type="date" value={formData.cliFecNac} onChange={handleChange} disabled={estaBloqueado} className={`${inputClass} ${estaBloqueado ? 'bg-slate-100 cursor-not-allowed' : ''}`} required />
                 </div>
                 <div>
                   <label htmlFor="cliNombres" className="block text-sm font-medium text-slate-700 mb-2">Nombres *</label>
-                  <input id="cliNombres" name="cliNombres" type="text" value={formData.cliNombres} onChange={handleChange} className={inputClass} placeholder="Juan" required />
+                  <input id="cliNombres" name="cliNombres" type="text" value={formData.cliNombres} onChange={handleChange} disabled={estaBloqueado} className={`${inputClass} ${estaBloqueado ? 'bg-slate-100 cursor-not-allowed' : ''}`} placeholder="Juan" required />
                 </div>
                 <div>
                   <label htmlFor="cliApellidos" className="block text-sm font-medium text-slate-700 mb-2">Apellidos *</label>
-                  <input id="cliApellidos" name="cliApellidos" type="text" value={formData.cliApellidos} onChange={handleChange} className={inputClass} placeholder="Pérez García" required />
+                  <input id="cliApellidos" name="cliApellidos" type="text" value={formData.cliApellidos} onChange={handleChange} disabled={estaBloqueado} className={`${inputClass} ${estaBloqueado ? 'bg-slate-100 cursor-not-allowed' : ''}`} placeholder="Pérez García" required />
                 </div>
               </div>
             </div>
@@ -283,7 +286,7 @@ export default function EditarClientePage() {
               
               <div className="mb-4">
                 <label htmlFor="cliDireccion" className="block text-sm font-medium text-slate-700 mb-2">Dirección</label>
-                <textarea id="cliDireccion" name="cliDireccion" value={formData.cliDireccion} onChange={handleChange} className={inputClass} placeholder="Calle Principal 123" rows={2} />
+                <textarea id="cliDireccion" name="cliDireccion" value={formData.cliDireccion} onChange={handleChange} disabled={estaBloqueado} className={`${inputClass} ${estaBloqueado ? 'bg-slate-100 cursor-not-allowed' : ''}`} placeholder="Calle Principal 123" rows={2} />
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
@@ -294,7 +297,8 @@ export default function EditarClientePage() {
                     name="cliDepartamento" 
                     value={currentDept?.name || ''} 
                     onChange={handleSelectChange} 
-                    className={inputClass}
+                    disabled={estaBloqueado} 
+                    className={`${inputClass} ${estaBloqueado ? 'bg-slate-100 cursor-not-allowed' : ''}`}
                   >
                     <option value="">-- Seleccionar --</option>
                     {departamentos.map(dep => (
@@ -310,8 +314,8 @@ export default function EditarClientePage() {
                     name="cliProvincia" 
                     value={currentProv?.name || ''} 
                     onChange={handleSelectChange} 
-                    className={inputClass} 
-                    disabled={!formData.cliDepartamento}
+                    disabled={!formData.cliDepartamento || estaBloqueado}
+                    className={`${inputClass} ${estaBloqueado ? 'bg-slate-100 cursor-not-allowed' : ''}`}
                   >
                     <option value="">-- Seleccionar --</option>
                     {filteredProvincias.map(prov => (
@@ -327,8 +331,8 @@ export default function EditarClientePage() {
                     name="cliDistrito" 
                     value={filteredDistritos.find(d => normalizar(d.name) === normalizar(formData.cliDistrito))?.name || ''} 
                     onChange={handleSelectChange} 
-                    className={inputClass} 
-                    disabled={!formData.cliProvincia}
+                    disabled={!formData.cliProvincia|| estaBloqueado}
+                    className={`${inputClass} ${estaBloqueado ? 'bg-slate-100 cursor-not-allowed' : ''}`}
                   >
                     <option value="">-- Seleccionar --</option>
                     {filteredDistritos.map(dist => (
@@ -341,7 +345,7 @@ export default function EditarClientePage() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label htmlFor="cliIngresos" className="block text-sm font-medium text-slate-700 mb-2">Ingresos Mensuales *</label>
-                  <input id="cliIngresos" name="cliIngresos" type="number" step="0.01" value={formData.cliIngresos} onChange={handleChange} className={inputClass} placeholder="0.00" required />
+                  <input id="cliIngresos" name="cliIngresos" type="number" step="0.01" value={formData.cliIngresos} onChange={handleChange} disabled={estaBloqueado} className={`${inputClass} ${estaBloqueado ? 'bg-slate-100 cursor-not-allowed' : ''}`} placeholder="0.00" required />
                 </div>
               </div>
             </div>
@@ -351,11 +355,11 @@ export default function EditarClientePage() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label htmlFor="cliTelefono" className="block text-sm font-medium text-slate-700 mb-2">Celular *</label>
-                  <input id="cliTelefono" name="cliTelefono" type="tel" inputMode="numeric" maxLength={11} value={formatTelefono(formData.cliTelefono)} onChange={handleChange} className={inputClass} placeholder="999-999-999" required />
+                  <input id="cliTelefono" name="cliTelefono" type="tel" inputMode="numeric" maxLength={11} value={formatTelefono(formData.cliTelefono)} onChange={handleChange} disabled={estaBloqueado} className={`${inputClass} ${estaBloqueado ? 'bg-slate-100 cursor-not-allowed' : ''}`} placeholder="999-999-999" required />
                 </div>
                 <div>
                   <label htmlFor="cliCorreo" className="block text-sm font-medium text-slate-700 mb-2">Correo Electrónico *</label>
-                  <input id="cliCorreo" name="cliCorreo" type="email" value={formData.cliCorreo} onChange={handleChange} className={inputClass} placeholder="juan@ejemplo.com" required />
+                  <input id="cliCorreo" name="cliCorreo" type="email" value={formData.cliCorreo} onChange={handleChange} disabled={estaBloqueado} className={`${inputClass} ${estaBloqueado ? 'bg-slate-100 cursor-not-allowed' : ''}`} placeholder="juan@ejemplo.com" required />
                 </div>
               </div>
             </div>
