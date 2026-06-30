@@ -6,7 +6,6 @@ import { useRouter, useParams } from 'next/navigation'
 import Link from 'next/link'
 import { ArrowLeft } from 'lucide-react'
 
-// Interfaces para los JSON de Ubigeo
 interface Departamento {
   id: string;
   name: string;
@@ -33,7 +32,6 @@ export default function EditarClientePage() {
   const [initialLoad, setInitialLoad] = useState(true)
   const [error, setError] = useState('')
 
-  // Estados para guardar la data de los JSON
   const [departamentos, setDepartamentos] = useState<Departamento[]>([])
   const [provincias, setProvincias] = useState<Provincia[]>([])
   const [distritos, setDistritos] = useState<Distrito[]>([])
@@ -50,10 +48,9 @@ export default function EditarClientePage() {
     cliTelefono: '',
     cliCorreo: '',
     cliIngresos: '',
-    estado: '' 
+    activo: true 
   })
 
-  // 1. Cargar los JSON de Ubigeo al montar el componente
   useEffect(() => {
     const fetchUbigeo = async () => {
       try {
@@ -73,7 +70,6 @@ export default function EditarClientePage() {
     fetchUbigeo()
   }, [])
 
-  // 2. Cargar los datos actuales del cliente al entrar a la página
   useEffect(() => {
     const fetchCliente = async () => {
       const token = localStorage.getItem('auth_token')
@@ -102,13 +98,13 @@ export default function EditarClientePage() {
           cliApellidos: data.cliApellidos || '',
           cliFecNac: data.cliFecNac || '',
           cliDireccion: data.cliDireccion || '',
-          cliDepartamento: data.cliDepartamento || '',
-          cliProvincia: data.cliProvincia || '',
-          cliDistrito: data.cliDistrito || '',
+          cliDepartamento: data.cliDepartamento ? data.cliDepartamento.trim() : '',
+          cliProvincia: data.cliProvincia ? data.cliProvincia.trim() : '',
+          cliDistrito: data.cliDistrito ? data.cliDistrito.trim() : '',
           cliTelefono: data.cliTelefono || '',
           cliCorreo: data.cliCorreo || '',
           cliIngresos: data.cliIngresos ? data.cliIngresos.toString() : '',
-          estado: data.estado || 'ACTIVO'
+          activo: data.activo !== undefined ? data.activo : true
         })
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Error de conexión')
@@ -120,12 +116,13 @@ export default function EditarClientePage() {
     fetchCliente()
   }, [clienteId, router])
 
-  // 3. Lógica de filtrado en cascada (con .trim() para limpiar los espacios del JSON)
-  const currentDept = departamentos.find(d => d.name.trim() === formData.cliDepartamento.trim())
-  const filteredProvincias = provincias.filter(p => p.department_id === currentDept?.id)
+  const normalizar = (texto?: string) => String(texto || '').trim().toLowerCase()
+
+  const currentDept = departamentos.find(d => normalizar(d.name) === normalizar(formData.cliDepartamento))
+  const filteredProvincias = provincias.filter(p => String(p.department_id) === String(currentDept?.id))
   
-  const currentProv = filteredProvincias.find(p => p.name.trim() === formData.cliProvincia.trim())
-  const filteredDistritos = distritos.filter(d => d.province_id === currentProv?.id)
+  const currentProv = filteredProvincias.find(p => normalizar(p.name) === normalizar(formData.cliProvincia))
+  const filteredDistritos = distritos.filter(d => String(d.province_id) === String(currentProv?.id))
 
   const formatTelefono = (digits: string): string => {
     const partes = []
@@ -136,7 +133,13 @@ export default function EditarClientePage() {
   }
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    const { name, value } = e.target
+    const target = e.target as HTMLInputElement;
+    const { name, value, type, checked } = target;
+
+    if (type === 'checkbox') {
+      setFormData(prev => ({ ...prev, [name]: checked }))
+      return
+    }
 
     if (name === 'cliDni' && (!/^\d*$/.test(value) || value.length > 8)) return
 
@@ -149,7 +152,6 @@ export default function EditarClientePage() {
     setFormData(prev => ({ ...prev, [name]: value }))
   }
 
-  // Manejador para selectores de Ubigeo (Limpia los hijos si cambia un padre)
   const handleSelectChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const { name, value } = e.target
 
@@ -165,7 +167,6 @@ export default function EditarClientePage() {
   const validateDNI = (dni: string): boolean => /^\d{8}$/.test(dni)
   const validateTelefono = (telefono: string): boolean => /^\d{9}$/.test(telefono)
 
-  // Guardar los cambios (Actualizar - PUT)
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError('')
@@ -196,9 +197,9 @@ export default function EditarClientePage() {
     try {
       const payload = {
         ...formData,
-        cliDepartamento: formData.cliDepartamento.trim(),
-        cliProvincia: formData.cliProvincia.trim(),
-        cliDistrito: formData.cliDistrito.trim(),
+        cliDepartamento: formData.cliDepartamento?.trim(),
+        cliProvincia: formData.cliProvincia?.trim(),
+        cliDistrito: formData.cliDistrito?.trim(),
         cliIngresos: parseFloat(formData.cliIngresos) || 0
       }
 
@@ -255,7 +256,6 @@ export default function EditarClientePage() {
           )}
 
           <form onSubmit={handleSubmit} className="space-y-6">
-            {/* Sección: Información Personal */}
             <div>
               <h3 className="text-lg font-semibold text-slate-900 mb-4">Información Personal</h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -278,7 +278,6 @@ export default function EditarClientePage() {
               </div>
             </div>
 
-            {/* Sección: Ubicación y Finanzas */}
             <div>
               <h3 className="text-lg text-slate-900 mb-4 font-bold">Ubicación y Finanzas</h3>
               
@@ -287,11 +286,16 @@ export default function EditarClientePage() {
                 <textarea id="cliDireccion" name="cliDireccion" value={formData.cliDireccion} onChange={handleChange} className={inputClass} placeholder="Calle Principal 123" rows={2} />
               </div>
 
-              {/* SELECTORES DE UBIGEO EN CASCADA */}
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
                 <div>
                   <label htmlFor="cliDepartamento" className="block text-sm font-medium text-slate-700 mb-2">Departamento</label>
-                  <select id="cliDepartamento" name="cliDepartamento" value={formData.cliDepartamento} onChange={handleSelectChange} className={inputClass}>
+                  <select 
+                    id="cliDepartamento" 
+                    name="cliDepartamento" 
+                    value={currentDept?.name || ''} 
+                    onChange={handleSelectChange} 
+                    className={inputClass}
+                  >
                     <option value="">-- Seleccionar --</option>
                     {departamentos.map(dep => (
                       <option key={dep.id} value={dep.name}>{dep.name}</option>
@@ -301,7 +305,14 @@ export default function EditarClientePage() {
 
                 <div>
                   <label htmlFor="cliProvincia" className="block text-sm font-medium text-slate-700 mb-2">Provincia</label>
-                  <select id="cliProvincia" name="cliProvincia" value={formData.cliProvincia} onChange={handleSelectChange} className={inputClass} disabled={!formData.cliDepartamento}>
+                  <select 
+                    id="cliProvincia" 
+                    name="cliProvincia" 
+                    value={currentProv?.name || ''} 
+                    onChange={handleSelectChange} 
+                    className={inputClass} 
+                    disabled={!formData.cliDepartamento}
+                  >
                     <option value="">-- Seleccionar --</option>
                     {filteredProvincias.map(prov => (
                       <option key={prov.id} value={prov.name}>{prov.name}</option>
@@ -311,7 +322,14 @@ export default function EditarClientePage() {
 
                 <div>
                   <label htmlFor="cliDistrito" className="block text-sm font-medium text-slate-700 mb-2">Distrito</label>
-                  <select id="cliDistrito" name="cliDistrito" value={formData.cliDistrito} onChange={handleSelectChange} className={inputClass} disabled={!formData.cliProvincia}>
+                  <select 
+                    id="cliDistrito" 
+                    name="cliDistrito" 
+                    value={filteredDistritos.find(d => normalizar(d.name) === normalizar(formData.cliDistrito))?.name || ''} 
+                    onChange={handleSelectChange} 
+                    className={inputClass} 
+                    disabled={!formData.cliProvincia}
+                  >
                     <option value="">-- Seleccionar --</option>
                     {filteredDistritos.map(dist => (
                       <option key={dist.id} value={dist.name}>{dist.name}</option>
@@ -328,7 +346,6 @@ export default function EditarClientePage() {
               </div>
             </div>
 
-            {/* Sección: Contacto */}
             <div>
               <h3 className="text-lg font-semibold text-slate-900 mb-4">Información de Contacto</h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -343,7 +360,20 @@ export default function EditarClientePage() {
               </div>
             </div>
 
-            {/* Botones con jerarquía visual corregida (Guardar = Primario, Cancelar = Secundario) */}
+            <div className="flex items-center gap-2 py-2">
+              <input
+                id="activo"
+                type="checkbox"
+                name="activo"
+                checked={formData.activo}
+                onChange={handleChange}
+                className="w-5 h-5 rounded border-slate-300 text-green-600 focus:ring-blue-500 cursor-pointer"
+              />
+              <label htmlFor="activo" className="text-sm font-bold text-slate-800 cursor-pointer select-none">
+                Cliente Activo
+              </label>
+            </div>
+
             <div className="flex gap-4 pt-6 border-t border-slate-200">
               <Link href="/clientes" className="flex-1 px-6 py-3 border border-slate-300 text-slate-700 rounded-lg font-medium hover:bg-slate-50 transition text-center flex items-center justify-center">
                 Cancelar
