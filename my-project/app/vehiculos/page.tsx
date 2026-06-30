@@ -4,7 +4,7 @@ import { ProtectedLayout } from '@/components/protected-layout'
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { Edit2, Trash2, Plus, CheckCircle, XCircle } from 'lucide-react'
+import { Edit2, Trash2, Plus, CheckCircle, XCircle, Filter } from 'lucide-react'
 
 // 1. Interfaz EXACTA de tu VehiculoDTO en Java
 interface Vehiculo {
@@ -26,6 +26,9 @@ export default function VehiculosPage() {
   const [vehiculos, setVehiculos] = useState<Vehiculo[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
+  
+  // Estado para controlar qué endpoint usar (por defecto: false = solo activos)
+  const [mostrarTodos, setMostrarTodos] = useState(false)
 
   useEffect(() => {
     const fetchVehiculos = async () => {
@@ -37,7 +40,12 @@ export default function VehiculosPage() {
       }
 
       try {
-        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/vehiculos`, {
+        setLoading(true)
+        
+        // Construimos el endpoint dinámicamente según el estado
+        const endpoint = mostrarTodos ? '/api/vehiculos/todos' : '/api/vehiculos'
+        
+        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}${endpoint}`, {
           method: 'GET',
           headers: {
             'Content-Type': 'application/json',
@@ -47,7 +55,7 @@ export default function VehiculosPage() {
 
         if (!response.ok) {
           if (response.status === 404) {
-             throw new Error('Aviso: El endpoint /api/vehiculos aún no existe en tu backend.')
+             throw new Error('Aviso: El endpoint aún no existe en el backend.')
           }
           throw new Error('Error al cargar la lista de vehículos.')
         }
@@ -62,7 +70,7 @@ export default function VehiculosPage() {
     }
 
     fetchVehiculos()
-  }, [router])
+  }, [router, mostrarTodos])
 
   const handleDelete = async (idOferta: number) => {
     if (confirm('¿Estás seguro de que deseas eliminar este vehículo?')) {
@@ -101,19 +109,35 @@ export default function VehiculosPage() {
     <ProtectedLayout title="Vehículos">
       <div className="space-y-6">
         
-        {/* Header con Botón de Agregar */}
-        <div className="flex items-center justify-between">
+        {/* Header Modificado con Filtro y Botón */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
             <h3 className="text-2xl font-bold text-slate-900">Catálogo de Vehículos</h3>
-            <p className="text-slate-600 text-sm mt-1">Total registrados: {vehiculos.length}</p>
+            <p className="text-slate-600 text-sm mt-1">Mostrando {vehiculos.length} vehículos</p>
           </div>
-          <Link
-            href="/vehiculos/nuevo"
-            className="inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium transition shadow-sm"
-          >
-            <Plus className="w-5 h-5" />
-            Nuevo Vehículo
-          </Link>
+          
+          <div className="flex items-center gap-3">
+            {/* Toggle de Filtro Dinámico conectado al backend */}
+            <label className="flex items-center gap-2 cursor-pointer bg-white border border-slate-200 px-3 py-2 rounded-lg hover:bg-slate-50 transition shadow-sm">
+              <input 
+                type="checkbox" 
+                className="w-4 h-4 text-blue-600 rounded border-slate-300 focus:ring-blue-500 cursor-pointer"
+                checked={mostrarTodos}
+                onChange={(e) => setMostrarTodos(e.target.checked)}
+              />
+              <span className="text-sm font-medium text-slate-700 select-none">
+                Incluir inactivos
+              </span>
+            </label>
+
+            <Link
+              href="/vehiculos/nuevo"
+              className="inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium transition shadow-sm"
+            >
+              <Plus className="w-5 h-5" />
+              Nuevo Vehículo
+            </Link>
+          </div>
         </div>
 
         {/* Manejo de Errores */}
@@ -204,7 +228,6 @@ export default function VehiculosPage() {
                   {vehiculos.map((vehiculo) => (
                     <tr key={vehiculo.idOferta} className="hover:bg-slate-50 transition">
                       
-                      {/* Unimos Marca y Modelo en una sola columna para mejor diseño */}
                       <td className="px-6 py-4">
                         <p className="text-sm font-bold text-slate-900">{vehiculo.vehMarca}</p>
                         <p className="text-xs text-slate-500">{vehiculo.vehModelo}</p>
@@ -261,7 +284,9 @@ export default function VehiculosPage() {
         ) : (
           !error && (
             <div className="bg-white border border-slate-200 rounded-lg p-12 text-center shadow-sm">
-              <p className="text-slate-600 text-lg mb-4">No hay vehículos registrados en el catálogo.</p>
+              <p className="text-slate-600 text-lg mb-4">
+                No hay vehículos registrados para mostrar.
+              </p>
               <Link
                 href="/vehiculos/nuevo"
                 className="inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium transition"
