@@ -30,7 +30,19 @@ interface Vehiculo {
   vehMarca: string
   vehModelo: string
   vehMonto: number
-  montoInicial: number
+  vehMontoInicial: number
+  activo: boolean
+}
+
+interface TasaInteres {
+  idTasa: number
+  nombre: string
+  tipoTasa: string
+  valor: number
+  periodo: string
+  capitalización: string
+  moneda: string
+  teaConvertida: number
   activo: boolean
 }
 
@@ -74,17 +86,18 @@ export default function SimuladorPage() {
   const [resultado, setResultado] = useState<ResultadoSimulacion | null>(null)
   const [clientes, setClientes] = useState<Cliente[]>([])
   const [vehiculos, setVehiculos] = useState<Vehiculo[]>([])
+  const [tasas, setTasas] = useState<TasaInteres[]>([])
 
   // Estado optimizado con Strings para evitar problemas de tipeo numérico
   const [formData, setFormData] = useState({
     idCliente: '',
     idOferta: '',
-    idTasa: '1', 
+    idTasa: '', 
     plazo: '24',
     cuotaInicial: '',
     montoBalloon: '0',
     tipoGracia: 'ninguna', 
-    periodiGracia: '0',
+    periodoGracia: '0',
     periodoTasa: '3', // 3 = Anual (TEA)
     segurosDesgravamen: '0.06', 
     segurosVehicular: '0', 
@@ -101,15 +114,18 @@ export default function SimuladorPage() {
       }
 
       try {
-        const [resClientes, resVehiculos] = await Promise.all([
+        const [resClientes, resVehiculos, resTasas] = await Promise.all([
           fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/clientes`, { headers: { 'Authorization': `Bearer ${token}` } }),
-          fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/vehiculos`, { headers: { 'Authorization': `Bearer ${token}` } })
+          fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/vehiculos`, { headers: { 'Authorization': `Bearer ${token}` } }),
+          fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/tasas`, { headers: { 'Authorization': `Bearer ${token}` } })
         ])
 
-        if (resClientes.ok && resVehiculos.ok) {
+        if (resClientes.ok && resVehiculos.ok && resTasas.ok) {
           setClientes(await resClientes.json())
           const dataVehiculos = await resVehiculos.json()
           setVehiculos(dataVehiculos.filter((v: Vehiculo) => v.activo))
+          const dataTasas = await resTasas.json()
+          setTasas(dataTasas.filter((t: TasaInteres) => t.activo))
         } else {
           throw new Error('No se pudo sincronizar la data con el servidor')
         }
@@ -133,11 +149,11 @@ export default function SimuladorPage() {
       
       if (name === 'idOferta') {
         const vehiculo = vehiculos.find(v => v.idOferta.toString() === value)
-        updated.cuotaInicial = vehiculo ? vehiculo.montoInicial.toString() : ''
+        updated.cuotaInicial = vehiculo ? vehiculo.vehMontoInicial.toString() : ''
       }
       
       if (name === 'tipoGracia' && value === 'ninguna') {
-        updated.periodiGracia = '0'
+        updated.periodoGracia = '0'
       }
 
       return updated
@@ -158,13 +174,18 @@ export default function SimuladorPage() {
       setError('Por favor, seleccione un vehículo del catálogo.')
       return
     }
+    
+    if (!formData.idTasa) {
+      setError('Por favor, seleccione una campaña financiera.')
+      return
+    }
 
     const montoTotalVehiculo = vehiculoSeleccionado.vehMonto
     const inicialIngresada = parseFloat(formData.cuotaInicial) || 0
     const balloonIngresado = parseFloat(formData.montoBalloon) || 0
 
-    if (inicialIngresada < vehiculoSeleccionado.montoInicial) {
-      setError(`La cuota inicial mínima para este vehículo debe ser de ${formatearMoneda(vehiculoSeleccionado.montoInicial)}`)
+    if (inicialIngresada < vehiculoSeleccionado.vehMontoInicial) {
+      setError(`La cuota inicial mínima para este vehículo debe ser de ${formatearMoneda(vehiculoSeleccionado.vehMontoInicial)}`)
       return
     }
 
@@ -183,10 +204,10 @@ export default function SimuladorPage() {
         montoInicial: inicialIngresada,
         montoBalloon: balloonIngresado,
         plazoMeses: parseInt(formData.plazo, 10),
-        periodoGracia: parseInt(formData.periodiGracia, 10),
+        periodoGracia: parseInt(formData.periodoGracia, 10),
         tipoGracia: formData.tipoGracia,
-        periodoTasa: parseInt(formData.periodoTasa, 10),
-        seguroDesgravamen: (parseFloat(formData.segurosDesgravamen) || 0) / 100, 
+        periodoTasa: 3, // Forzamos 3 porque tu lógica interna trabaja con TEA
+        seguroDesgravamen: (parseFloat(formData.segurosDesgravamen) || 0) / 100,
         seguroVehicular: parseFloat(formData.segurosVehicular) || 0,
         montoPortes: parseFloat(formData.comision) || 0,
         tasaItf: 0.00005 
@@ -218,37 +239,35 @@ export default function SimuladorPage() {
     }
   }
 
-  // GUARDAR CRÉDITO DEFINITIVO (CORREGIDO CON LOS 16 CAMPOS EXACTOS)
+  // GUARDAR CRÉDITO DEFINITIVO
   const handleGuardar = async () => {
     if (!resultado || !clienteSeleccionado || !vehiculoSeleccionado) return
 
     const token = localStorage.getItem('auth_token')
-    // CORREGIDO: Extraemos con la clave minúscula exacta guardada en el Login
     const idAdmin = localStorage.getItem('admin_id') 
 
     setSaving(true)
     setError('')
 
     try {
-      // payload estructurado exactamente como lo mapea tu @RequestBody en Spring Boot
       const payload = {
         idTasa: parseInt(formData.idTasa, 10),
         montoVehiculo: vehiculoSeleccionado.vehMonto,
         montoInicial: parseFloat(formData.cuotaInicial) || 0,
         montoBalloon: parseFloat(formData.montoBalloon) || 0,
         plazoMeses: parseInt(formData.plazo, 10),
-        periodoGracia: parseInt(formData.periodiGracia, 10),
+        periodoGracia: parseInt(formData.periodoGracia, 10),
         tipoGracia: formData.tipoGracia,
         periodoTasa: parseInt(formData.periodoTasa, 10),
         seguroDesgravamen: (parseFloat(formData.segurosDesgravamen) || 0) / 100,
         seguroVehicular: parseFloat(formData.segurosVehicular) || 0,
         montoPortes: parseFloat(formData.comision) || 0,
         tasaItf: 0.00005,
-        idUsuario: idAdmin ? parseInt(idAdmin, 10) : null, // Extraído dinámicamente del login
+        idUsuario: idAdmin ? parseInt(idAdmin, 10) : null,
         idCliente: clienteSeleccionado.idCliente,
-        idOffer: vehiculoSeleccionado.idOferta, // Sincronizado con idOferta
-        idOferta: vehiculoSeleccionado.idOferta, // Mapeado por si acaso
-        idConfig: null // Enviado como null de forma segura
+        idOffer: vehiculoSeleccionado.idOferta,
+        idOferta: vehiculoSeleccionado.idOferta,
+        idConfig: null
       }
 
       const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/creditos`, {
@@ -332,13 +351,15 @@ export default function SimuladorPage() {
                 </div>
               </div>
 
-              {/* Bloque 2: Parámetros del Motor de Amortización */}
+{/* Bloque 2: Parámetros del Motor de Amortización */}
               <div>
                 <h3 className="text-lg font-semibold text-slate-900 mb-4">Configuración Estructural del Financiamiento</h3>
-                <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                
+                {/* Fila 1: Cuota y Plazo (mitad y mitad) */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
                   <div>
                     <label className="block text-sm font-medium text-slate-700 mb-2">Cuota Inicial (S/)</label>
-                    <input name="cuotaInicial" type="number" step="0.01" value={formData.cuotaInicial} onChange={handleChange} className={inputClass} placeholder={vehiculoSeleccionado ? `Min. ${vehiculoSeleccionado.montoInicial}` : "0.00"} required />
+                    <input name="cuotaInicial" type="number" step="0.01" value={formData.cuotaInicial} onChange={handleChange} className={inputClass} placeholder={vehiculoSeleccionado ? `Min. ${vehiculoSeleccionado.vehMontoInicial}` : "0.00"} required />
                   </div>
 
                   <div>
@@ -347,20 +368,25 @@ export default function SimuladorPage() {
                       {PRAZOS_MESES.map(m => <option key={m} value={m.toString()}>{m} meses</option>)}
                     </select>
                   </div>
+                </div>
 
-                  <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-2">ID Tasa Activa</label>
-                    <input name="idTasa" type="number" value={formData.idTasa} onChange={handleChange} className={inputClass} min="1" required />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-2">Tipo de Entrada (Tasa)</label>
-                    <select name="periodoTasa" value={formData.periodoTasa} onChange={handleChange} className={inputClass}>
-                      <option value="1">Diaria (TED)</option>
-                      <option value="2">Mensual (TEM)</option>
-                      <option value="3">Anual (TEA)</option>
-                    </select>
-                  </div>
+                {/* Fila 2: Campaña (Ocupa el 100% del ancho para textos largos) */}
+                <div className="w-full">
+                  <label className="block text-sm font-medium text-slate-700 mb-2">Campaña Financiera (Tasa) *</label>
+                  <select 
+                    name="idTasa" 
+                    value={formData.idTasa} 
+                    onChange={handleChange} 
+                    className={inputClass} 
+                    required
+                  >
+                    <option value="">-- Seleccionar Campaña --</option>
+                    {tasas.map((t: TasaInteres) => (
+                      <option key={t.idTasa} value={t.idTasa}>
+                        {t.nombre} - TEA: {(t.teaConvertida * 100).toFixed(2)}%
+                      </option>
+                    ))}
+                  </select>
                 </div>
               </div>
 
@@ -377,7 +403,7 @@ export default function SimuladorPage() {
 
                   <div>
                     <label className="block text-sm font-medium text-slate-700 mb-2">Meses diferidos (Gracia)</label>
-                    <input name="periodiGracia" type="number" value={formData.periodiGracia} onChange={handleChange} disabled={formData.tipoGracia === 'ninguna'} className={inputClass + " disabled:bg-slate-100 disabled:opacity-60"} min="0" />
+                    <input name="periodoGracia" type="number" value={formData.periodoGracia} onChange={handleChange} disabled={formData.tipoGracia === 'ninguna'} className={inputClass + " disabled:bg-slate-100 disabled:opacity-60"} min="0" />
                   </div>
 
                   <div>
