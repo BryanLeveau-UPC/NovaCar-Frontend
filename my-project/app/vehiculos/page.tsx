@@ -16,11 +16,10 @@ interface Vehiculo {
   vehAnho: number
   vehMonto: number
   vehMontoInicial: number
+  vehTipoMoneda: string
   vehCantidad: number
   activo: boolean
 }
-
-const formatearMoneda = (valor: number) => `S/ ${valor.toLocaleString('es-PE')}`
 
 export default function VehiculosPage() {
   const router = useRouter()
@@ -31,6 +30,26 @@ export default function VehiculosPage() {
   // Estado para controlar qué endpoint usar (por defecto: false = solo activos)
   const [mostrarTodos, setMostrarTodos] = useState(false)
 
+  // Nuevos estados para la moneda
+  const [monedaPreferida, setMonedaPreferida] = useState('PEN')
+  const [tipoCambio, setTipoCambio] = useState(3.40)
+
+  // Formateador inteligente según moneda preferida y tipo de cambio
+  const formatearMoneda = (valor: number, monedaVehiculo: string) => {
+    let valorFinal = valor;
+    let simbolo = monedaVehiculo === 'USD' ? 'US$' : 'S/';
+
+    if (monedaPreferida === 'USD' && monedaVehiculo === 'PEN') {
+      valorFinal = valor / tipoCambio;
+      simbolo = 'US$';
+    } else if (monedaPreferida === 'PEN' && monedaVehiculo === 'USD') {
+      valorFinal = valor * tipoCambio;
+      simbolo = 'S/';
+    }
+
+    return `${simbolo} ${valorFinal.toLocaleString('es-PE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  }
+
   useEffect(() => {
     const fetchVehiculos = async () => {
       const token = localStorage.getItem('auth_token')
@@ -40,9 +59,19 @@ export default function VehiculosPage() {
         return
       }
 
+      // Cargar preferencia y tipo de cambio
+      const pref = localStorage.getItem('moneda_preferida') || 'PEN'
+      setMonedaPreferida(pref)
+
       try {
         setLoading(true)
         
+        // Obtener TC del backend
+        const tcRes = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/configuracion/tipo-cambio`, {
+           headers: { 'Authorization': `Bearer ${token}` }
+        })
+        if (tcRes.ok) setTipoCambio(await tcRes.json())
+
         // Construimos el endpoint dinámicamente según el estado
         const endpoint = mostrarTodos ? '/api/vehiculos/todos' : '/api/vehiculos'
         
@@ -118,7 +147,6 @@ export default function VehiculosPage() {
           </div>
           
           <div className="flex items-center gap-3">
-            {/* Toggle de Filtro Dinámico conectado al backend */}
             <label className="flex items-center gap-2 cursor-pointer bg-white border border-slate-200 px-3 py-2 rounded-lg hover:bg-slate-50 transition shadow-sm">
               <input 
                 type="checkbox" 
@@ -181,13 +209,13 @@ export default function VehiculosPage() {
                     <div className="rounded-lg bg-slate-50 p-3">
                       <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Monto total</p>
                       <p className="mt-1 font-bold text-slate-900">
-                        {vehiculo.vehMonto ? formatearMoneda(vehiculo.vehMonto) : '-'}
+                        {formatearMoneda(vehiculo.vehMonto, vehiculo.vehTipoMoneda)}
                       </p>
                     </div>
                     <div className="rounded-lg bg-slate-50 p-3">
                       <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Monto inicial</p>
                       <p className="mt-1 font-bold text-slate-900">
-                        {vehiculo.vehMontoInicial ? formatearMoneda(vehiculo.vehMontoInicial) : '-'}
+                        {formatearMoneda(vehiculo.vehMontoInicial, vehiculo.vehTipoMoneda)}
                       </p>
                     </div>
                   </div>
@@ -217,10 +245,10 @@ export default function VehiculosPage() {
                 <thead className="bg-slate-50 border-b border-slate-200">
                   <tr>
                     <th className="px-6 py-3 text-left text-sm font-semibold text-slate-900">Vehículo</th>
-                    <th className="px-6 py-3 text-left text-sm font-semibold text-slate-900">Tipo</th>
-                    <th className="px-6 py-3 text-left text-sm font-semibold text-slate-900">Año</th>
+                    <th className="px-6 py-3 text-left text-sm font-semibold text-slate-900">Tipo / Año</th>
                     <th className="px-6 py-3 text-left text-sm font-semibold text-slate-900">Monto Total</th>
                     <th className="px-6 py-3 text-left text-sm font-semibold text-slate-900">Monto Inicial</th>
+                    <th className="px-6 py-3 text-left text-sm font-semibold text-slate-900">Stock</th>
                     <th className="px-6 py-3 text-left text-sm font-semibold text-slate-900">Estado</th>
                     <th className="px-6 py-3 text-left text-sm font-semibold text-slate-900">Acciones</th>
                   </tr>
@@ -228,24 +256,18 @@ export default function VehiculosPage() {
                 <tbody className="divide-y divide-slate-200">
                   {vehiculos.map((vehiculo) => (
                     <tr key={vehiculo.idOferta} className="hover:bg-slate-50 transition">
-                      
                       <td className="px-6 py-4">
                         <p className="text-sm font-bold text-slate-900">{vehiculo.vehMarca}</p>
                         <p className="text-xs text-slate-500">{vehiculo.vehModelo}</p>
                       </td>
-                      
-                      <td className="px-6 py-4 text-sm text-slate-600 capitalize">{vehiculo.vehTipoVehiculo}</td>
-                      
-                      <td className="px-6 py-4 text-sm text-slate-600">{vehiculo.vehAnho}</td>
-                      
+                      <td className="px-6 py-4 text-sm text-slate-600 capitalize">{vehiculo.vehTipoVehiculo} / {vehiculo.vehAnho}</td>
                       <td className="px-6 py-4 text-sm font-bold text-slate-900">
-                        {vehiculo.vehMonto ? formatearMoneda(vehiculo.vehMonto) : '-'}
+                        {formatearMoneda(vehiculo.vehMonto, vehiculo.vehTipoMoneda)}
                       </td>
-                      
                       <td className="px-6 py-4 text-sm font-medium text-slate-600">
-                        {vehiculo.vehMontoInicial ? formatearMoneda(vehiculo.vehMontoInicial) : '-'}
+                        {formatearMoneda(vehiculo.vehMontoInicial, vehiculo.vehTipoMoneda)}
                       </td>
-
+                      <td className="px-6 py-4 text-sm text-slate-600">{vehiculo.vehCantidad}</td>
                       <td className="px-6 py-4">
                         {vehiculo.activo ? (
                           <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
@@ -257,7 +279,6 @@ export default function VehiculosPage() {
                           </span>
                         )}
                       </td>
-
                       <td className="px-6 py-4 text-sm">
                         <div className="flex items-center gap-2">
                           <Link
