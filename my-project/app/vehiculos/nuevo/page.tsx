@@ -11,7 +11,7 @@ export default function NuevoVehiculoPage() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   
-  // Guardamos las entradas de texto como Strings para facilitar la escritura en el frontend
+  // Estado actualizado para coincidir con VehiculoDTO
   const [formData, setFormData] = useState({
     vehMarca: '',
     vehModelo: '',
@@ -19,7 +19,9 @@ export default function NuevoVehiculoPage() {
     vehDescripcion: '',
     vehAnho: new Date().getFullYear().toString(),
     vehMonto: '',
-    montoInicial: '',
+    vehMontoInicial: '', // Renombrado
+    vehTipoMoneda: 'USD', // Nuevo campo
+    vehCantidad: '1',     // Nuevo campo
     activo: true, 
   })
 
@@ -39,13 +41,13 @@ export default function NuevoVehiculoPage() {
     setError('')
 
     // Validaciones básicas del frontend
-    if (!formData.vehMarca || !formData.vehModelo || !formData.vehAnho || !formData.vehMonto) {
+    if (!formData.vehMarca || !formData.vehModelo || !formData.vehAnho || !formData.vehMonto || !formData.vehCantidad) {
       setError('Por favor, completa todos los campos obligatorios (*)')
       return
     }
 
     const montoTotal = parseFloat(formData.vehMonto) || 0;
-    const inicial = parseFloat(formData.montoInicial) || 0;
+    const inicial = parseFloat(formData.vehMontoInicial) || 0;
 
     if (inicial >= montoTotal) {
       setError('La cuota inicial no puede ser mayor o igual al precio total del vehículo');
@@ -61,12 +63,13 @@ export default function NuevoVehiculoPage() {
     setLoading(true)
 
     try {
-      // Convertimos los tipos estrictamente a lo que espera tu DTO de Spring Boot
+      // Parseo estricto a los tipos que espera el VehiculoDTO
       const payload = {
         ...formData,
         vehAnho: parseInt(formData.vehAnho, 10) || new Date().getFullYear(),
         vehMonto: montoTotal,
-        montoInicial: inicial
+        vehMontoInicial: inicial,
+        vehCantidad: parseInt(formData.vehCantidad, 10) || 1
       }
 
       const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/vehiculos`, {
@@ -164,8 +167,8 @@ export default function NuevoVehiculoPage() {
                     <option value="Sedán">Sedán</option>
                     <option value="SUV">SUV</option>
                     <option value="Hatchback">Hatchback</option>
-                    <option value="Pickup / Camioneta">Pickup / Camioneta</option> {/* Combinado */}
-                    <option value="Miniván / Familiar">Miniván / Familiar</option> {/* Nuevo */}
+                    <option value="Pickup / Camioneta">Pickup / Camioneta</option>
+                    <option value="Miniván / Familiar">Miniván / Familiar</option>
                     <option value="Deportivo">Deportivo</option>
                     <option value="Comercial / Van">Comercial / Van</option>
                   </select>
@@ -190,13 +193,32 @@ export default function NuevoVehiculoPage() {
               </div>
             </div>
 
-            {/* Sección: Finanzas */}
+            {/* Sección: Finanzas y Stock */}
             <div>
-              <h3 className="text-lg font-semibold text-slate-900 mb-4">Precios y Financiamiento</h3>
+              <h3 className="text-lg font-semibold text-slate-900 mb-4">Precios, Financiamiento y Stock</h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4 bg-slate-50 rounded-lg border border-slate-200">
+                
+                {/* Nuevo: Selector de Moneda */}
+                <div>
+                  <label htmlFor="vehTipoMoneda" className="block text-sm font-medium text-slate-700 mb-2">
+                    Moneda de Cotización *
+                  </label>
+                  <select
+                    id="vehTipoMoneda"
+                    name="vehTipoMoneda"
+                    value={formData.vehTipoMoneda}
+                    onChange={handleChange}
+                    className={inputClass}
+                    required
+                  >
+                    <option value="USD">Dólares (USD)</option>
+                    <option value="PEN">Soles (PEN)</option>
+                  </select>
+                </div>
+
                 <div>
                   <label htmlFor="vehMonto" className="block text-sm font-medium text-slate-700 mb-2">
-                    Precio Total (S/) *
+                    Precio Total *
                   </label>
                   <input
                     id="vehMonto"
@@ -212,18 +234,36 @@ export default function NuevoVehiculoPage() {
                 </div>
 
                 <div>
-                  <label htmlFor="montoInicial" className="block text-sm font-medium text-slate-700 mb-2">
-                    Cuota Inicial Mínima (S/)
+                  <label htmlFor="vehMontoInicial" className="block text-sm font-medium text-slate-700 mb-2">
+                    Cuota Inicial Mínima
                   </label>
                   <input
-                    id="montoInicial"
+                    id="vehMontoInicial"
                     type="number"
                     step="0.01"
-                    name="montoInicial"
-                    value={formData.montoInicial}
+                    name="vehMontoInicial"
+                    value={formData.vehMontoInicial}
                     onChange={handleChange}
                     className={inputClass}
                     placeholder="0.00"
+                  />
+                </div>
+
+                {/* Nuevo: Cantidad */}
+                <div>
+                  <label htmlFor="vehCantidad" className="block text-sm font-medium text-slate-700 mb-2">
+                    Unidades en Stock *
+                  </label>
+                  <input
+                    id="vehCantidad"
+                    type="number"
+                    name="vehCantidad"
+                    min="0"
+                    value={formData.vehCantidad}
+                    onChange={handleChange}
+                    className={inputClass}
+                    placeholder="1"
+                    required
                   />
                 </div>
               </div>
@@ -243,21 +283,6 @@ export default function NuevoVehiculoPage() {
                 className={`${inputClass} resize-none`}
                 placeholder="Especificaciones, color, versión..."
               />
-            </div>
-
-            {/* Estado */}
-            <div className="flex items-center gap-2 py-2">
-              <input
-                id="activo"
-                type="checkbox"
-                name="activo"
-                checked={formData.activo}
-                onChange={handleChange}
-                className="w-5 h-5 rounded border-slate-300 text-green-600 focus:ring-blue-500 cursor-pointer"
-              />
-              <label htmlFor="activo" className="text-sm font-bold text-slate-800 cursor-pointer select-none">
-                Vehículo Activo (Visible para simulaciones)
-              </label>
             </div>
 
             {/* Botones */}

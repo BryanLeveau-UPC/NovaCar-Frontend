@@ -127,7 +127,7 @@ export default function CuentaPage() {
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-2">Tasas de Interés</label>
               <Link
-                href="/tasas/nuevo"
+                href="/tasas"
                 className="inline-flex items-center gap-2 bg-slate-800 hover:bg-slate-900 text-white px-4 py-2 rounded-lg font-medium transition w-full justify-center"
               >
                 <Percent className="w-5 h-5" />

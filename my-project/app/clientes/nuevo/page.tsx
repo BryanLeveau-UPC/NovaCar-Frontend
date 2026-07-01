@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react' // Corregido: Importado useEffect
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { ProtectedLayout } from '@/components/protected-layout'
 import { ArrowLeft } from 'lucide-react'
@@ -28,11 +28,11 @@ export default function NuevoClientePage() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
 
-  // 1. Restaurados: Estados para almacenar el Ubigeo
   const [departamentos, setDepartamentos] = useState<Departamento[]>([])
   const [provincias, setProvincias] = useState<Provincia[]>([])
   const [distritos, setDistritos] = useState<Distrito[]>([])
 
+  // 1. Agregado el nuevo campo cliTipoMoneda (por defecto PEN)
   const [formData, setFormData] = useState({
     cliDni: '',
     cliNombres: '',
@@ -44,10 +44,10 @@ export default function NuevoClientePage() {
     cliDistrito: '',
     cliTelefono: '',
     cliCorreo: '',
-    cliIngresos: ''
+    cliIngresos: '',
+    cliTipoMoneda: 'PEN' 
   })
 
-  // 2. Restaurado: Carga limpia desde la carpeta public/json
   useEffect(() => {
     const fetchUbigeo = async () => {
       try {
@@ -67,7 +67,6 @@ export default function NuevoClientePage() {
     fetchUbigeo()
   }, [])
 
-  // 3. Restaurado: Lógica de cascada aplicando .trim() para limpiar espacios fantasmas del JSON
   const currentDept = departamentos.find(d => d.name.trim() === formData.cliDepartamento.trim())
   const filteredProvincias = provincias.filter(p => p.department_id === currentDept?.id)
   
@@ -143,7 +142,6 @@ export default function NuevoClientePage() {
     setLoading(true)
 
     try {
-      // Limpiamos los strings antes de mandarlos al backend por si acaso
       const payload = {
         ...formData,
         cliDepartamento: formData.cliDepartamento.trim(),
@@ -258,10 +256,18 @@ export default function NuevoClientePage() {
                 </div>
               </div>
 
+              {/* 2. Actualizada la sección de ingresos con el selector de moneda */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label htmlFor="cliIngresos" className="block text-sm font-medium text-slate-700 mb-2">Ingresos Mensuales *</label>
                   <input id="cliIngresos" name="cliIngresos" type="number" step="0.01" value={formData.cliIngresos} onChange={handleChange} className={inputClass} placeholder="0.00" required />
+                </div>
+                <div>
+                  <label htmlFor="cliTipoMoneda" className="block text-sm font-medium text-slate-700 mb-2">Moneda de Ingresos *</label>
+                  <select id="cliTipoMoneda" name="cliTipoMoneda" value={formData.cliTipoMoneda} onChange={handleSelectChange} className={inputClass} required>
+                    <option value="PEN">Soles (PEN)</option>
+                    <option value="USD">Dólares (USD)</option>
+                  </select>
                 </div>
               </div>
             </div>
@@ -281,7 +287,6 @@ export default function NuevoClientePage() {
               </div>
             </div>
 
-            {/* Botones con jerarquía visual correcta */}
             <div className="flex gap-4 pt-6 border-t border-slate-200">
               <Link href="/clientes" className="flex-1 px-6 py-3 border border-slate-300 text-slate-700 rounded-lg font-medium hover:bg-slate-50 transition text-center flex items-center justify-center">
                 Cancelar

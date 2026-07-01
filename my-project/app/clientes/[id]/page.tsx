@@ -36,6 +36,7 @@ export default function EditarClientePage() {
   const [provincias, setProvincias] = useState<Provincia[]>([])
   const [distritos, setDistritos] = useState<Distrito[]>([])
   
+  // 1. Agregado cliTipoMoneda al estado inicial
   const [formData, setFormData] = useState({
     cliDni: '',
     cliNombres: '',
@@ -48,6 +49,7 @@ export default function EditarClientePage() {
     cliTelefono: '',
     cliCorreo: '',
     cliIngresos: '',
+    cliTipoMoneda: 'PEN', 
     activo: true 
   })
 
@@ -95,6 +97,7 @@ export default function EditarClientePage() {
 
         const data = await response.json()
         
+        // 2. Cargamos el tipo de moneda que viene del backend
         setFormData({
           cliDni: data.cliDni || '',
           cliNombres: data.cliNombres || '',
@@ -107,6 +110,7 @@ export default function EditarClientePage() {
           cliTelefono: data.cliTelefono || '',
           cliCorreo: data.cliCorreo || '',
           cliIngresos: data.cliIngresos ? data.cliIngresos.toString() : '',
+          cliTipoMoneda: data.cliTipoMoneda || 'PEN',
           activo: data.activo !== undefined ? data.activo : true
         })
       } catch (err) {
@@ -342,10 +346,18 @@ export default function EditarClientePage() {
                 </div>
               </div>
 
+              {/* 3. Selector de Moneda de Ingresos agregado */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label htmlFor="cliIngresos" className="block text-sm font-medium text-slate-700 mb-2">Ingresos Mensuales *</label>
                   <input id="cliIngresos" name="cliIngresos" type="number" step="0.01" value={formData.cliIngresos} onChange={handleChange} disabled={estaBloqueado} className={`${inputClass} ${estaBloqueado ? 'bg-slate-100 cursor-not-allowed' : ''}`} placeholder="0.00" required />
+                </div>
+                <div>
+                  <label htmlFor="cliTipoMoneda" className="block text-sm font-medium text-slate-700 mb-2">Moneda de Ingresos *</label>
+                  <select id="cliTipoMoneda" name="cliTipoMoneda" value={formData.cliTipoMoneda} onChange={handleSelectChange} disabled={estaBloqueado} className={`${inputClass} ${estaBloqueado ? 'bg-slate-100 cursor-not-allowed' : ''}`} required>
+                    <option value="PEN">Soles (PEN)</option>
+                    <option value="USD">Dólares (USD)</option>
+                  </select>
                 </div>
               </div>
             </div>

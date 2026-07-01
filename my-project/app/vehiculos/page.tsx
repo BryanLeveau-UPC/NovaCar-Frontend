@@ -15,7 +15,8 @@ interface Vehiculo {
   vehDescripcion: string
   vehAnho: number
   vehMonto: number
-  montoInicial: number
+  vehMontoInicial: number
+  vehCantidad: number
   activo: boolean
 }
 
@@ -186,7 +187,7 @@ export default function VehiculosPage() {
                     <div className="rounded-lg bg-slate-50 p-3">
                       <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Monto inicial</p>
                       <p className="mt-1 font-bold text-slate-900">
-                        {vehiculo.montoInicial ? formatearMoneda(vehiculo.montoInicial) : '-'}
+                        {vehiculo.vehMontoInicial ? formatearMoneda(vehiculo.vehMontoInicial) : '-'}
                       </p>
                     </div>
                   </div>
@@ -242,7 +243,7 @@ export default function VehiculosPage() {
                       </td>
                       
                       <td className="px-6 py-4 text-sm font-medium text-slate-600">
-                        {vehiculo.montoInicial ? formatearMoneda(vehiculo.montoInicial) : '-'}
+                        {vehiculo.vehMontoInicial ? formatearMoneda(vehiculo.vehMontoInicial) : '-'}
                       </td>
 
                       <td className="px-6 py-4">

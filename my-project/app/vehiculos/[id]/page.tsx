@@ -15,7 +15,7 @@ export default function EditarVehiculoPage() {
   const [initialLoad, setInitialLoad] = useState(true)
   const [error, setError] = useState('')
   
-  // Guardamos los valores numéricos como string para facilitar la edición de decimales en inputs
+  // 1. Estado actualizado para coincidir con VehiculoDTO
   const [formData, setFormData] = useState({
     vehMarca: '',
     vehModelo: '',
@@ -23,11 +23,13 @@ export default function EditarVehiculoPage() {
     vehDescripcion: '',
     vehAnho: '',
     vehMonto: '',
-    montoInicial: '',
+    vehMontoInicial: '', // Renombrado
+    vehTipoMoneda: 'USD', // Nuevo campo
+    vehCantidad: '',      // Nuevo campo
     activo: true,
   })
 
-  // 1. Cargar datos del vehículo al abrir la pantalla (GET)
+  // 2. Cargar datos del vehículo (GET) y mapear los nuevos campos
   useEffect(() => {
     const fetchVehiculo = async () => {
       const token = localStorage.getItem('auth_token')
@@ -50,7 +52,6 @@ export default function EditarVehiculoPage() {
 
         const data = await response.json()
         
-        // Mapeamos y convertimos los números a string para los inputs
         setFormData({
           vehMarca: data.vehMarca || '',
           vehModelo: data.vehModelo || '',
@@ -58,7 +59,9 @@ export default function EditarVehiculoPage() {
           vehDescripcion: data.vehDescripcion || '',
           vehAnho: data.vehAnho ? data.vehAnho.toString() : '',
           vehMonto: data.vehMonto ? data.vehMonto.toString() : '',
-          montoInicial: data.montoInicial ? data.montoInicial.toString() : '',
+          vehMontoInicial: data.vehMontoInicial ? data.vehMontoInicial.toString() : '', // Renombrado
+          vehTipoMoneda: data.vehTipoMoneda || 'USD', // Nuevo campo
+          vehCantidad: data.vehCantidad ? data.vehCantidad.toString() : '', // Nuevo campo
           activo: data.activo !== undefined ? data.activo : true,
         })
       } catch (err) {
@@ -82,18 +85,19 @@ export default function EditarVehiculoPage() {
     }
   }
 
-  // 2. Guardar Cambios (Actualizar - PUT)
+  // 3. Guardar Cambios (Actualizar - PUT) con el payload corregido
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError('')
 
-    if (!formData.vehMarca || !formData.vehModelo || !formData.vehAnho || !formData.vehMonto) {
+    // Actualizada la validación para requerir la cantidad
+    if (!formData.vehMarca || !formData.vehModelo || !formData.vehAnho || !formData.vehMonto || !formData.vehCantidad) {
       setError('Por favor, completa todos los campos obligatorios (*)')
       return
     }
 
     const montoTotal = parseFloat(formData.vehMonto) || 0
-    const inicial = parseFloat(formData.montoInicial) || 0
+    const inicial = parseFloat(formData.vehMontoInicial) || 0
 
     if (inicial >= montoTotal) {
       setError('La cuota inicial no puede ser mayor o igual al precio total del vehículo')
@@ -104,12 +108,12 @@ export default function EditarVehiculoPage() {
     setLoading(true)
 
     try {
-      // Parseamos los datos numéricos antes de enviarlos a tu DTO en Spring Boot
       const payload = {
         ...formData,
         vehAnho: parseInt(formData.vehAnho, 10) || new Date().getFullYear(),
         vehMonto: montoTotal,
-        montoInicial: inicial
+        vehMontoInicial: inicial,
+        vehCantidad: parseInt(formData.vehCantidad, 10) || 1
       }
 
       const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/vehiculos/${vehiculoId}`, {
@@ -242,13 +246,32 @@ export default function EditarVehiculoPage() {
               </div>
             </div>
 
-            {/* Sección: Finanzas */}
+            {/* Sección: Finanzas y Stock (Actualizada con los nuevos campos) */}
             <div>
-              <h3 className="text-lg font-semibold text-slate-900 mb-4">Precios y Financiamiento</h3>
+              <h3 className="text-lg font-semibold text-slate-900 mb-4">Precios, Financiamiento y Stock</h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4 bg-slate-50 rounded-lg border border-slate-200">
+                
+                {/* Nuevo: Selector de Moneda */}
+                <div>
+                  <label htmlFor="vehTipoMoneda" className="block text-sm font-medium text-slate-700 mb-2">
+                    Moneda de Cotización *
+                  </label>
+                  <select
+                    id="vehTipoMoneda"
+                    name="vehTipoMoneda"
+                    value={formData.vehTipoMoneda}
+                    onChange={handleChange}
+                    className={inputClass}
+                    required
+                  >
+                    <option value="USD">Dólares (USD)</option>
+                    <option value="PEN">Soles (PEN)</option>
+                  </select>
+                </div>
+
                 <div>
                   <label htmlFor="vehMonto" className="block text-sm font-medium text-slate-700 mb-2">
-                    Precio Total (S/) *
+                    Precio Total *
                   </label>
                   <input
                     id="vehMonto"
@@ -263,17 +286,34 @@ export default function EditarVehiculoPage() {
                 </div>
 
                 <div>
-                  <label htmlFor="montoInicial" className="block text-sm font-medium text-slate-700 mb-2">
-                    Cuota Inicial Mínima (S/)
+                  <label htmlFor="vehMontoInicial" className="block text-sm font-medium text-slate-700 mb-2">
+                    Cuota Inicial Mínima
                   </label>
                   <input
-                    id="montoInicial"
+                    id="vehMontoInicial"
                     type="number"
                     step="0.01"
-                    name="montoInicial"
-                    value={formData.montoInicial}
+                    name="vehMontoInicial"
+                    value={formData.vehMontoInicial}
                     onChange={handleChange}
                     className={inputClass}
+                  />
+                </div>
+
+                {/* Nuevo: Cantidad */}
+                <div>
+                  <label htmlFor="vehCantidad" className="block text-sm font-medium text-slate-700 mb-2">
+                    Unidades en Stock *
+                  </label>
+                  <input
+                    id="vehCantidad"
+                    type="number"
+                    name="vehCantidad"
+                    min="0"
+                    value={formData.vehCantidad}
+                    onChange={handleChange}
+                    className={inputClass}
+                    required
                   />
                 </div>
               </div>
@@ -309,7 +349,7 @@ export default function EditarVehiculoPage() {
               </label>
             </div>
 
-            {/* Botones (Cancelar a la izquierda con diseño secundario, Guardar a la derecha con primario) */}
+            {/* Botones */}
             <div className="flex gap-4 pt-6 border-t border-slate-200">
               <Link
                 href="/vehiculos"
