@@ -2,9 +2,9 @@
 
 import { ProtectedLayout } from '@/components/protected-layout'
 import { useRouter } from 'next/navigation'
-import { User, LogOut, Shield, Bell, DollarSign, Percent } from 'lucide-react'
-import { useState, useEffect } from 'react'
-import Link from 'next/link' // Asegúrate de tener esta importación arriba
+import { User, LogOut, Bell, DollarSign, Percent } from 'lucide-react'
+import { useState, useEffect, startTransition  } from 'react'
+import Link from 'next/link'
 
 interface PerfilUsuario {
   adminNombres: string
@@ -13,36 +13,47 @@ interface PerfilUsuario {
   fechaCreacion: string
 }
 
+interface PageState {
+  mounted: boolean
+  moneda: string
+  userData: PerfilUsuario | null
+}
+
 export default function CuentaPage() {
   const router = useRouter()
-  const [userData, setUserData] = useState<PerfilUsuario | null>(null)
-  const [moneda, setMoneda] = useState('PEN')
-  const [mounted, setMounted] = useState(false) // Necesario para evitar errores de hidratación con localStorage
+  const [state, setState] = useState<PageState>({
+    mounted: false,
+    moneda: 'PEN',
+    userData: null,
+  })
 
-  useEffect(() => {
-    setMounted(true)
-    const monedaGuardada = localStorage.getItem('moneda_preferida')
-    if (monedaGuardada) setMoneda(monedaGuardada)
+useEffect(() => {
+  const token = localStorage.getItem('auth_token')
+  if (!token) {
+    router.push('/')
+    return
+  }
 
-    const token = localStorage.getItem('auth_token')
-    if (!token) {
-      router.push('/')
-      return
-    }
+  const monedaGuardada = localStorage.getItem('moneda_preferida') || 'PEN'
+  const nombres = localStorage.getItem('admin_nombres') || 'Administrador'
+  const dni = localStorage.getItem('admin_dni') || 'Sin DNI'
 
-    const nombres = localStorage.getItem('admin_nombres') || 'Administrador'
-    const dni = localStorage.getItem('admin_dni') || 'Sin DNI'
-
-    setUserData({
-      adminNombres: nombres,
-      adminDni: dni,
-      adminCorreo: 'admin@novacar.com',
-      fechaCreacion: new Date().toISOString()
+  startTransition(() => {
+    setState({
+      mounted: true,
+      moneda: monedaGuardada,
+      userData: {
+        adminNombres: nombres,
+        adminDni: dni,
+        adminCorreo: 'admin@novacar.com',
+        fechaCreacion: new Date().toISOString(),
+      },
     })
-  }, [router])
+  })
+}, [router])
 
   const handleMonedaChange = (nuevaMoneda: string) => {
-    setMoneda(nuevaMoneda)
+    setState((prev) => ({ ...prev, moneda: nuevaMoneda }))
     localStorage.setItem('moneda_preferida', nuevaMoneda)
   }
 
@@ -56,8 +67,10 @@ export default function CuentaPage() {
     }
   }
 
-  // Evita renderizar cosas que dependen de localStorage hasta que el componente esté montado
-  if (!mounted) return null;
+  const { mounted, moneda, userData } = state
+
+  if (!mounted) return null
+
 
   return (
     <ProtectedLayout title="Mi Cuenta">
