@@ -2,10 +2,10 @@
 
 import { ProtectedLayout } from '@/components/protected-layout'
 import { useRouter } from 'next/navigation'
-import { User, LogOut, Shield, Bell } from 'lucide-react'
+import { User, LogOut, Shield, Bell, DollarSign, Percent } from 'lucide-react'
 import { useState, useEffect } from 'react'
+import Link from 'next/link' // Asegúrate de tener esta importación arriba
 
-// Definimos la estructura de datos para el perfil
 interface PerfilUsuario {
   adminNombres: string
   adminDni: string
@@ -16,87 +16,79 @@ interface PerfilUsuario {
 export default function CuentaPage() {
   const router = useRouter()
   const [userData, setUserData] = useState<PerfilUsuario | null>(null)
+  const [moneda, setMoneda] = useState('PEN')
+  const [mounted, setMounted] = useState(false) // Necesario para evitar errores de hidratación con localStorage
 
   useEffect(() => {
-    const cargarDatosPerfil = async () => {
-      const token = localStorage.getItem('auth_token')
-      
-      if (!token) {
-        router.push('/')
-        return
-      }
+    setMounted(true)
+    const monedaGuardada = localStorage.getItem('moneda_preferida')
+    if (monedaGuardada) setMoneda(monedaGuardada)
 
-      // Pequeña pausa para evitar advertencias de renderizado en Next.js
-      await Promise.resolve()
-
-      const nombres = localStorage.getItem('admin_nombres') || 'Administrador'
-      const dni = localStorage.getItem('admin_dni') || 'Sin DNI'
-
-      // Actualizamos el estado con los datos reales
-      setUserData({
-        adminNombres: nombres,
-        adminDni: dni,
-        adminCorreo: 'admin@novacar.com', // Dato temporal hasta que se guarde en el login
-        fechaCreacion: new Date().toISOString() // Dato temporal, idealmente vendría del backend
-      })
+    const token = localStorage.getItem('auth_token')
+    if (!token) {
+      router.push('/')
+      return
     }
 
-    cargarDatosPerfil()
+    const nombres = localStorage.getItem('admin_nombres') || 'Administrador'
+    const dni = localStorage.getItem('admin_dni') || 'Sin DNI'
+
+    setUserData({
+      adminNombres: nombres,
+      adminDni: dni,
+      adminCorreo: 'admin@novacar.com',
+      fechaCreacion: new Date().toISOString()
+    })
   }, [router])
+
+  const handleMonedaChange = (nuevaMoneda: string) => {
+    setMoneda(nuevaMoneda)
+    localStorage.setItem('moneda_preferida', nuevaMoneda)
+  }
 
   const handleLogout = () => {
     if (confirm('¿Estás seguro de que deseas cerrar sesión?')) {
-      // Borramos las credenciales reales
       localStorage.removeItem('auth_token')
       localStorage.removeItem('admin_nombres')
       localStorage.removeItem('admin_dni')
-      
+      localStorage.removeItem('moneda_preferida')
       router.push('/')
     }
   }
 
+  // Evita renderizar cosas que dependen de localStorage hasta que el componente esté montado
+  if (!mounted) return null;
+
   return (
     <ProtectedLayout title="Mi Cuenta">
       <div className="max-w-2xl space-y-6">
+        
         {/* Profile Section */}
         <div className="bg-white border border-slate-200 rounded-lg p-8">
           <h3 className="text-2xl font-bold text-slate-900 mb-8 flex items-center gap-3">
             <User className="w-6 h-6" />
             Información de Perfil
           </h3>
-
           <div className="space-y-6">
-            {/* Name */}
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-2">
-                Nombre Completo
-              </label>
+              <label className="block text-sm font-medium text-slate-700 mb-2">Nombre Completo</label>
               <div className="px-4 py-3 bg-slate-50 border border-slate-200 rounded-lg text-slate-900 font-medium">
-                {userData?.adminNombres || 'Cargando...'}
+                {userData?.adminNombres}
               </div>
             </div>
-
-            {/* Email */}
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-2">
-                Email
-              </label>
+              <label className="block text-sm font-medium text-slate-700 mb-2">Email</label>
               <div className="px-4 py-3 bg-slate-50 border border-slate-200 rounded-lg text-slate-600">
-                {userData?.adminCorreo || 'Cargando...'}
+                {userData?.adminCorreo}
               </div>
             </div>
-
-            {/* User ID (Usamos el DNI aquí ya que es tu identificador principal) */}
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-2">
-                DNI / ID de Usuario
-              </label>
+              <label className="block text-sm font-medium text-slate-700 mb-2">DNI / ID de Usuario</label>
               <div className="px-4 py-3 bg-slate-50 border border-slate-200 rounded-lg text-slate-600 font-mono text-sm">
-                {userData?.adminDni || 'Cargando...'}
+                {userData?.adminDni}
               </div>
             </div>
-
-            {/* Registration Date */}
+           {/* Registration Date */}
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-2">
                 Fecha de Registro
@@ -114,39 +106,38 @@ export default function CuentaPage() {
           </div>
         </div>
 
-        {/* Security Section */}
+        {/* Preferencias Financieras */}
         <div className="bg-white border border-slate-200 rounded-lg p-8">
           <h3 className="text-xl font-bold text-slate-900 mb-6 flex items-center gap-3">
-            <Shield className="w-6 h-6" />
-            Seguridad
+            <DollarSign className="w-6 h-6" />
+            Preferencias Financieras
           </h3>
-
-          <div className="space-y-4">
-            <p className="text-slate-600 text-sm">
-              Tu cuenta está protegida con autenticación de usuario y contraseña. Para mayor seguridad, recuerda:
-            </p>
-            <ul className="space-y-2 text-slate-600 text-sm ml-4">
-              <li className="flex items-start gap-2">
-                <span className="text-blue-600 font-bold mt-0.5">•</span>
-                <span>Nunca compartas tu contraseña con nadie</span>
-              </li>
-              <li className="flex items-start gap-2">
-                <span className="text-blue-600 font-bold mt-0.5">•</span>
-                <span>Cierra sesión cuando termines de usar la aplicación</span>
-              </li>
-              <li className="flex items-start gap-2">
-                <span className="text-blue-600 font-bold mt-0.5">•</span>
-                <span>Usa una contraseña fuerte y única</span>
-              </li>
-              <li className="flex items-start gap-2">
-                <span className="text-blue-600 font-bold mt-0.5">•</span>
-                <span>No accedas desde dispositivos públicos o compartidos</span>
-              </li>
-            </ul>
+          <div className="space-y-6">
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-2">Moneda Predeterminada</label>
+              <select 
+                value={moneda}
+                onChange={(e) => handleMonedaChange(e.target.value)}
+                className="w-full px-4 py-2 bg-white border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition text-slate-900 font-medium"
+              >
+                <option value="PEN">Soles (PEN)</option>
+                <option value="USD">Dólares (USD)</option>
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-2">Tasas de Interés</label>
+              <Link
+                href="/tasas/nuevo"
+                className="inline-flex items-center gap-2 bg-slate-800 hover:bg-slate-900 text-white px-4 py-2 rounded-lg font-medium transition w-full justify-center"
+              >
+                <Percent className="w-5 h-5" />
+                Gestionar Tasas de Interés
+              </Link>
+            </div>
           </div>
         </div>
 
-        {/* Notifications Section */}
+{/* Notifications Section */}
         <div className="bg-white border border-slate-200 rounded-lg p-8">
           <h3 className="text-xl font-bold text-slate-900 mb-6 flex items-center gap-3">
             <Bell className="w-6 h-6" />
