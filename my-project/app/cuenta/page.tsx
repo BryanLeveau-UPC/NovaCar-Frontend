@@ -3,8 +3,10 @@
 import { ProtectedLayout } from '@/components/protected-layout'
 import { useRouter } from 'next/navigation'
 import { User, LogOut, Bell, DollarSign, Percent } from 'lucide-react'
-import { useState, useEffect, startTransition  } from 'react'
+import { useState, useEffect, startTransition } from 'react'
 import Link from 'next/link'
+
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL 
 
 interface PerfilUsuario {
   adminNombres: string
@@ -13,10 +15,26 @@ interface PerfilUsuario {
   fechaCreacion: string
 }
 
+interface ConfiguracionDTO {
+  idConfig: number
+  idUsuario: number
+  monedaDefault: string
+  tipoTasaDefault: string
+  capitalizacionDefault: string | null
+  diasPorMes: number
+  tasaItf: number
+  maxGraciaTotal: number
+  maxGraciaParcial: number
+  tipoCambioActual: number | null
+  fechaActualizacion: string
+}
+
 interface PageState {
   mounted: boolean
   moneda: string
   userData: PerfilUsuario | null
+  config: ConfiguracionDTO | null
+  guardando: boolean
 }
 
 export default function CuentaPage() {
@@ -25,36 +43,110 @@ export default function CuentaPage() {
     mounted: false,
     moneda: 'PEN',
     userData: null,
+    config: null,
+    guardando: false,
   })
 
-useEffect(() => {
-  const token = localStorage.getItem('auth_token')
-  if (!token) {
-    router.push('/')
-    return
-  }
+  useEffect(() => {
+    const token = localStorage.getItem('auth_token')
+    const idUsuario = localStorage.getItem('id_usuario')
 
-  const monedaGuardada = localStorage.getItem('moneda_preferida') || 'PEN'
-  const nombres = localStorage.getItem('admin_nombres') || 'Administrador'
-  const dni = localStorage.getItem('admin_dni') || 'Sin DNI'
+    if (!token || !idUsuario) {
+      router.push('/')
+      return
+    }
 
-  startTransition(() => {
-    setState({
-      mounted: true,
-      moneda: monedaGuardada,
-      userData: {
-        adminNombres: nombres,
-        adminDni: dni,
-        adminCorreo: 'admin@novacar.com',
-        fechaCreacion: new Date().toISOString(),
-      },
-    })
-  })
-}, [router])
+    const nombres = localStorage.getItem('admin_nombres') || 'Administrador'
+    const dni = localStorage.getItem('admin_dni') || 'Sin DNI'
 
-  const handleMonedaChange = (nuevaMoneda: string) => {
-    setState((prev) => ({ ...prev, moneda: nuevaMoneda }))
-    localStorage.setItem('moneda_preferida', nuevaMoneda)
+    const cargarConfiguracion = async () => {
+      try {
+        const res = await fetch(`${API_BASE_URL}/api/configuraciones/usuario/${idUsuario}`, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        })
+
+        if (!res.ok) throw new Error('No se pudo cargar la configuración')
+
+        const config: ConfiguracionDTO = await res.json()
+
+        startTransition(() => {
+          setState({
+            mounted: true,
+            moneda: config.monedaDefault?.toUpperCase() || 'PEN',
+            userData: {
+              adminNombres: nombres,
+              adminDni: dni,
+              adminCorreo: 'admin@novacar.com',
+              fechaCreacion: new Date().toISOString(),
+            },
+            config,
+            guardando: false,
+          })
+        })
+      } catch (error) {
+        console.error('Error cargando configuración:', error)
+        // Fallback: igual dejamos entrar al usuario, con valores por defecto
+        startTransition(() => {
+          setState({
+            mounted: true,
+            moneda: 'PEN',
+            userData: {
+              adminNombres: nombres,
+              adminDni: dni,
+              adminCorreo: 'admin@novacar.com',
+              fechaCreacion: new Date().toISOString(),
+            },
+            config: null,
+            guardando: false,
+          })
+        })
+      }
+    }
+
+    cargarConfiguracion()
+  }, [router])
+
+  const handleMonedaChange = async (nuevaMoneda: string) => {
+    const idUsuario = localStorage.getItem('id_usuario')
+    const token = localStorage.getItem('auth_token')
+
+    if (!idUsuario || !token) return
+
+    // Actualización optimista en la UI
+    setState((prev) => ({ ...prev, moneda: nuevaMoneda, guardando: true }))
+
+    try {
+      const payload = {
+        ...state.config,
+        monedaDefault: nuevaMoneda.toLowerCase(),
+      }
+
+      const res = await fetch(`${API_BASE_URL}/api/configuraciones/usuario/${idUsuario}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify(payload),
+      })
+
+      if (!res.ok) throw new Error('No se pudo guardar la configuración')
+
+      const configActualizada: ConfiguracionDTO = await res.json()
+
+      setState((prev) => ({
+        ...prev,
+        config: configActualizada,
+        moneda: configActualizada.monedaDefault.toUpperCase(),
+        guardando: false,
+      }))
+    } catch (error) {
+      console.error('Error guardando configuración:', error)
+      setState((prev) => ({ ...prev, guardando: false }))
+      alert('No se pudo guardar tu preferencia de moneda. Intenta de nuevo.')
+    }
   }
 
   const handleLogout = () => {
@@ -62,15 +154,14 @@ useEffect(() => {
       localStorage.removeItem('auth_token')
       localStorage.removeItem('admin_nombres')
       localStorage.removeItem('admin_dni')
-      localStorage.removeItem('moneda_preferida')
+      localStorage.removeItem('id_usuario')
       router.push('/')
     }
   }
 
-  const { mounted, moneda, userData } = state
+  const { mounted, moneda, userData, guardando } = state
 
   if (!mounted) return null
-
 
   return (
     <ProtectedLayout title="Mi Cuenta">
@@ -101,7 +192,7 @@ useEffect(() => {
                 {userData?.adminDni}
               </div>
             </div>
-           {/* Registration Date */}
+            {/* Registration Date */}
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-2">
                 Fecha de Registro
@@ -127,11 +218,15 @@ useEffect(() => {
           </h3>
           <div className="space-y-6">
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-2">Moneda Predeterminada</label>
+              <label className="block text-sm font-medium text-slate-700 mb-2">
+                Moneda Predeterminada
+                {guardando && <span className="ml-2 text-xs text-slate-400">Guardando...</span>}
+              </label>
               <select 
                 value={moneda}
                 onChange={(e) => handleMonedaChange(e.target.value)}
-                className="w-full px-4 py-2 bg-white border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition text-slate-900 font-medium"
+                disabled={guardando}
+                className="w-full px-4 py-2 bg-white border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition text-slate-900 font-medium disabled:opacity-50"
               >
                 <option value="PEN">Soles (PEN)</option>
                 <option value="USD">Dólares (USD)</option>
@@ -150,7 +245,7 @@ useEffect(() => {
           </div>
         </div>
 
-{/* Notifications Section */}
+        {/* Notifications Section */}
         <div className="bg-white border border-slate-200 rounded-lg p-8">
           <h3 className="text-xl font-bold text-slate-900 mb-6 flex items-center gap-3">
             <Bell className="w-6 h-6" />

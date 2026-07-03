@@ -9,8 +9,9 @@ import { BarChart3, Save, RefreshCw } from 'lucide-react'
 const PRAZOS_MESES = [12, 24, 36, 48, 60]
 const TIPOS_GRACIA = ['ninguna', 'parcial', 'total']
 
-const formatearMoneda = (valor: number) => {
-  return `S/ ${valor.toLocaleString('es-PE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+const formatearMoneda = (valor: number, moneda: string = 'PEN') => {
+  const simbolo = moneda === 'USD' ? 'US$' : 'S/'
+  return `${simbolo} ${valor.toLocaleString('es-PE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
 }
 
 const formatearPorcentaje = (valor: number) => {
@@ -82,13 +83,14 @@ export default function SimuladorPage() {
   const [calculando, setCalculando] = useState(false)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
+  const [moneda, setMoneda] = useState('PEN') // Estado para la moneda dinámica
   
   const [resultado, setResultado] = useState<ResultadoSimulacion | null>(null)
   const [clientes, setClientes] = useState<Cliente[]>([])
   const [vehiculos, setVehiculos] = useState<Vehiculo[]>([])
   const [tasas, setTasas] = useState<TasaInteres[]>([])
 
-  // Estado optimizado con Strings para evitar problemas de tipeo numérico
+  // Estado optimizado alineado 100% al DTO
   const [formData, setFormData] = useState({
     idCliente: '',
     idOferta: '',
@@ -98,10 +100,17 @@ export default function SimuladorPage() {
     montoBalloon: '0',
     tipoGracia: 'ninguna', 
     periodoGracia: '0',
-    periodoTasa: '3', // 3 = Anual (TEA)
-    segurosDesgravamen: '0.06', 
-    segurosVehicular: '0', 
-    comision: '0', 
+    // Gastos Iniciales
+    costesNotariales: '0',
+    costesRegistrales: '0',
+    comisionEstudio: '0',
+    comisionActivacion: '0',
+    tasacion: '0',
+    // Gastos Periódicos
+    segurosDesgravamen: '0.049', 
+    tasaSeguroVehicular: '0', 
+    comision: '0', // Portes
+    gastosAdministracion: '0'
   })
 
   // Cargar catálogos
@@ -112,6 +121,10 @@ export default function SimuladorPage() {
         router.push('/')
         return
       }
+
+      // Leer preferencia de moneda
+      const monedaGuardada = localStorage.getItem('moneda_preferida') || 'PEN'
+      setMoneda(monedaGuardada)
 
       try {
         const [resClientes, resVehiculos, resTasas] = await Promise.all([
@@ -169,12 +182,10 @@ export default function SimuladorPage() {
       setError('Por favor, seleccione un cliente válido.')
       return
     }
-
     if (!vehiculoSeleccionado) {
       setError('Por favor, seleccione un vehículo del catálogo.')
       return
     }
-    
     if (!formData.idTasa) {
       setError('Por favor, seleccione una campaña financiera.')
       return
@@ -185,10 +196,9 @@ export default function SimuladorPage() {
     const balloonIngresado = parseFloat(formData.montoBalloon) || 0
 
     if (inicialIngresada < vehiculoSeleccionado.vehMontoInicial) {
-      setError(`La cuota inicial mínima para este vehículo debe ser de ${formatearMoneda(vehiculoSeleccionado.vehMontoInicial)}`)
+      setError(`La cuota inicial mínima para este vehículo debe ser de ${formatearMoneda(vehiculoSeleccionado.vehMontoInicial, moneda)}`)
       return
     }
-
     if (inicialIngresada >= montoTotalVehiculo) {
       setError('La cuota inicial no puede igualar ni superar el valor total del vehículo.')
       return
@@ -206,10 +216,19 @@ export default function SimuladorPage() {
         plazoMeses: parseInt(formData.plazo, 10),
         periodoGracia: parseInt(formData.periodoGracia, 10),
         tipoGracia: formData.tipoGracia,
-        periodoTasa: 3, // Forzamos 3 porque tu lógica interna trabaja con TEA
+        
+        // Gastos Iniciales
+        costesNotariales: parseFloat(formData.costesNotariales) || 0,
+        costesRegistrales: parseFloat(formData.costesRegistrales) || 0,
+        comisionEstudio: parseFloat(formData.comisionEstudio) || 0,
+        comisionActivacion: parseFloat(formData.comisionActivacion) || 0,
+        tasacion: parseFloat(formData.tasacion) || 0,
+
+        // Gastos Periódicos
         seguroDesgravamen: (parseFloat(formData.segurosDesgravamen) || 0) / 100,
-        seguroVehicular: parseFloat(formData.segurosVehicular) || 0,
+        tasaSeguroVehicular: (parseFloat(formData.tasaSeguroVehicular) || 0) / 100,
         montoPortes: parseFloat(formData.comision) || 0,
+        gastosAdministracion: parseFloat(formData.gastosAdministracion) || 0,
         tasaItf: 0.00005 
       }
 
@@ -258,11 +277,22 @@ export default function SimuladorPage() {
         plazoMeses: parseInt(formData.plazo, 10),
         periodoGracia: parseInt(formData.periodoGracia, 10),
         tipoGracia: formData.tipoGracia,
-        periodoTasa: parseInt(formData.periodoTasa, 10),
+        
+        // Gastos Iniciales
+        costesNotariales: parseFloat(formData.costesNotariales) || 0,
+        costesRegistrales: parseFloat(formData.costesRegistrales) || 0,
+        comisionEstudio: parseFloat(formData.comisionEstudio) || 0,
+        comisionActivacion: parseFloat(formData.comisionActivacion) || 0,
+        tasacion: parseFloat(formData.tasacion) || 0,
+
+        // Gastos Periódicos
         seguroDesgravamen: (parseFloat(formData.segurosDesgravamen) || 0) / 100,
-        seguroVehicular: parseFloat(formData.segurosVehicular) || 0,
+        tasaSeguroVehicular: (parseFloat(formData.tasaSeguroVehicular) || 0) / 100,
         montoPortes: parseFloat(formData.comision) || 0,
+        gastosAdministracion: parseFloat(formData.gastosAdministracion) || 0,
         tasaItf: 0.00005,
+        
+        // Relaciones
         idUsuario: idAdmin ? parseInt(idAdmin, 10) : null,
         idCliente: clienteSeleccionado.idCliente,
         idOffer: vehiculoSeleccionado.idOferta,
@@ -270,7 +300,7 @@ export default function SimuladorPage() {
         idConfig: null
       }
 
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/creditos`, {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/creditos/guardar-simulacion`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -293,6 +323,7 @@ export default function SimuladorPage() {
   }
 
   const inputClass = "w-full px-4 py-2 border border-slate-400 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition text-slate-950 placeholder:text-slate-400 bg-white"
+  const simboloMoneda = moneda === 'USD' ? 'US$' : 'S/' // Helper para los labels
 
   if (loading) {
     return (
@@ -321,6 +352,7 @@ export default function SimuladorPage() {
             <h2 className="text-2xl font-bold text-slate-900 mb-8">Nueva Simulación Vehicular</h2>
 
             <form onSubmit={handleCalcular} className="space-y-8">
+              
               {/* Bloque 1: Entidades Relacionales */}
               <div>
                 <h3 className="text-lg font-semibold text-slate-900 mb-4">Titular y Objeto del Crédito</h3>
@@ -343,7 +375,7 @@ export default function SimuladorPage() {
                       <option value="">-- Seleccionar Vehículo --</option>
                       {vehiculos.map(v => (
                         <option key={v.idOferta} value={v.idOferta.toString()}>
-                          {v.vehMarca} {v.vehModelo} - Costo: {formatearMoneda(v.vehMonto)}
+                          {v.vehMarca} {v.vehModelo} - Costo: {formatearMoneda(v.vehMonto, moneda)}
                         </option>
                       ))}
                     </select>
@@ -351,17 +383,26 @@ export default function SimuladorPage() {
                 </div>
               </div>
 
-{/* Bloque 2: Parámetros del Motor de Amortización */}
+              {/* Bloque 2: Parámetros del Motor de Amortización */}
               <div>
                 <h3 className="text-lg font-semibold text-slate-900 mb-4">Configuración Estructural del Financiamiento</h3>
                 
-                {/* Fila 1: Cuota y Plazo (mitad y mitad) */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
                   <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-2">Cuota Inicial (S/)</label>
+                    <label className="block text-sm font-medium text-slate-700 mb-2">Precio del Vehículo ({simboloMoneda})</label>
+                    <input 
+                      type="text" 
+                      value={vehiculoSeleccionado ? formatearMoneda(vehiculoSeleccionado.vehMonto, moneda) : ''} 
+                      className={`${inputClass} bg-slate-100 text-slate-500 font-semibold cursor-not-allowed border-slate-200`} 
+                      placeholder={`${simboloMoneda} 0.00`} 
+                      readOnly 
+                      disabled 
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-2">Cuota Inicial ({simboloMoneda})</label>
                     <input name="cuotaInicial" type="number" step="0.01" value={formData.cuotaInicial} onChange={handleChange} className={inputClass} placeholder={vehiculoSeleccionado ? `Min. ${vehiculoSeleccionado.vehMontoInicial}` : "0.00"} required />
                   </div>
-
                   <div>
                     <label className="block text-sm font-medium text-slate-700 mb-2">Plazo del Crédito</label>
                     <select name="plazo" value={formData.plazo} onChange={handleChange} className={inputClass}>
@@ -369,17 +410,10 @@ export default function SimuladorPage() {
                     </select>
                   </div>
                 </div>
-
-                {/* Fila 2: Campaña (Ocupa el 100% del ancho para textos largos) */}
+                
                 <div className="w-full">
                   <label className="block text-sm font-medium text-slate-700 mb-2">Campaña Financiera (Tasa) *</label>
-                  <select 
-                    name="idTasa" 
-                    value={formData.idTasa} 
-                    onChange={handleChange} 
-                    className={inputClass} 
-                    required
-                  >
+                  <select name="idTasa" value={formData.idTasa} onChange={handleChange} className={inputClass} required>
                     <option value="">-- Seleccionar Campaña --</option>
                     {tasas.map((t: TasaInteres) => (
                       <option key={t.idTasa} value={t.idTasa}>
@@ -400,36 +434,63 @@ export default function SimuladorPage() {
                       {TIPOS_GRACIA.map(tipo => <option key={tipo} value={tipo}>{tipo}</option>)}
                     </select>
                   </div>
-
                   <div>
                     <label className="block text-sm font-medium text-slate-700 mb-2">Meses diferidos (Gracia)</label>
                     <input name="periodoGracia" type="number" value={formData.periodoGracia} onChange={handleChange} disabled={formData.tipoGracia === 'ninguna'} className={inputClass + " disabled:bg-slate-100 disabled:opacity-60"} min="0" />
                   </div>
-
                   <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-2">Monto Cuota Balloon (S/)</label>
+                    <label className="block text-sm font-medium text-slate-700 mb-2">Monto Cuota Balloon ({simboloMoneda})</label>
                     <input name="montoBalloon" type="number" step="0.01" value={formData.montoBalloon} onChange={handleChange} className={inputClass} min="0" />
                   </div>
                 </div>
               </div>
 
-              {/* Bloque 4: Gastos Periódicos Adicionales */}
+              {/* Bloque 4: Gastos Iniciales (Desembolso) */}
               <div>
-                <h3 className="text-lg font-semibold text-slate-900 mb-4">Polizas de Seguros y Comisiones de Portes</h3>
+                <h3 className="text-lg font-semibold text-slate-900 mb-4">Gastos Iniciales (Cobrados al Desembolso)</h3>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-2">Seguro Desgravamen (% Mensual)</label>
+                    <label className="block text-sm font-medium text-slate-700 mb-2">Costes Notariales ({simboloMoneda})</label>
+                    <input name="costesNotariales" type="number" step="0.01" value={formData.costesNotariales} onChange={handleChange} className={inputClass} min="0" />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-2">Costes Registrales ({simboloMoneda})</label>
+                    <input name="costesRegistrales" type="number" step="0.01" value={formData.costesRegistrales} onChange={handleChange} className={inputClass} min="0" />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-2">Tasación ({simboloMoneda})</label>
+                    <input name="tasacion" type="number" step="0.01" value={formData.tasacion} onChange={handleChange} className={inputClass} min="0" />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-2">Comisión de Estudio ({simboloMoneda})</label>
+                    <input name="comisionEstudio" type="number" step="0.01" value={formData.comisionEstudio} onChange={handleChange} className={inputClass} min="0" />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-2">Comisión de Activación ({simboloMoneda})</label>
+                    <input name="comisionActivacion" type="number" step="0.01" value={formData.comisionActivacion} onChange={handleChange} className={inputClass} min="0" />
+                  </div>
+                </div>
+              </div>
+
+              {/* Bloque 5: Gastos Periódicos Adicionales */}
+              <div>
+                <h3 className="text-lg font-semibold text-slate-900 mb-4">Pólizas de Seguros y Cargos Mensuales</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-2">Seg. Desgravamen (% Mensual)</label>
                     <input name="segurosDesgravamen" type="number" step="0.0001" value={formData.segurosDesgravamen} onChange={handleChange} className={inputClass} min="0" />
                   </div>
-
                   <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-2">Seguro Vehicular (S/ Fijo Mensual)</label>
-                    <input name="segurosVehicular" type="number" step="0.01" value={formData.segurosVehicular} onChange={handleChange} className={inputClass} min="0" />
+                    <label className="block text-sm font-medium text-slate-700 mb-2">Seg. Vehicular (% s/Valor Auto)</label>
+                    <input name="tasaSeguroVehicular" type="number" step="0.0001" value={formData.tasaSeguroVehicular} onChange={handleChange} className={inputClass} min="0" />
                   </div>
-
                   <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-2">Portes / Comisión Administrativa (S/)</label>
+                    <label className="block text-sm font-medium text-slate-700 mb-2">Portes Mensuales ({simboloMoneda})</label>
                     <input name="comision" type="number" step="0.01" value={formData.comision} onChange={handleChange} className={inputClass} min="0" />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-2">Gastos Mantenimiento / Admin ({simboloMoneda})</label>
+                    <input name="gastosAdministracion" type="number" step="0.01" value={formData.gastosAdministracion} onChange={handleChange} className={inputClass} min="0" />
                   </div>
                 </div>
               </div>
@@ -450,7 +511,7 @@ export default function SimuladorPage() {
               <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                 <div className="bg-gradient-to-br from-blue-50 to-blue-100 border border-blue-200 rounded-lg p-6 shadow-sm">
                   <p className="text-blue-700 text-xs font-bold uppercase tracking-wider mb-1">Cuota Mensual Regular</p>
-                  <p className="text-2xl font-black text-blue-950">{formatearMoneda(resultado.cuotaMensualRegular)}</p>
+                  <p className="text-2xl font-black text-blue-950">{formatearMoneda(resultado.cuotaMensualRegular, moneda)}</p>
                 </div>
                 <div className="bg-gradient-to-br from-green-50 to-green-100 border border-green-200 rounded-lg p-6 shadow-sm">
                   <p className="text-green-700 text-xs font-bold uppercase tracking-wider mb-1">TCEA (Costo Real Anual)</p>
@@ -462,7 +523,7 @@ export default function SimuladorPage() {
                 </div>
                 <div className="bg-gradient-to-br from-amber-50 to-orange-100 border border-amber-200 rounded-lg p-6 shadow-sm">
                   <p className="text-amber-800 text-xs font-bold uppercase tracking-wider mb-1">Costo Total del Crédito</p>
-                  <p className="text-2xl font-black text-amber-950">{formatearMoneda(resultado.totalAPagar)}</p>
+                  <p className="text-2xl font-black text-amber-950">{formatearMoneda(resultado.totalAPagar, moneda)}</p>
                 </div>
               </div>
 
@@ -472,15 +533,15 @@ export default function SimuladorPage() {
                   <div className="space-y-3 font-medium text-sm">
                     <div className="flex justify-between">
                       <span className="text-slate-600">Valor Comercial Vehículo:</span>
-                      <span className="text-slate-900 font-bold">{formatearMoneda(vehiculoSeleccionado?.vehMonto || 0)}</span>
+                      <span className="text-slate-900 font-bold">{formatearMoneda(vehiculoSeleccionado?.vehMonto || 0, moneda)}</span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-slate-600">Cuota Inicial Aportada:</span>
-                      <span className="text-slate-900 font-bold text-green-600">-{formatearMoneda(parseFloat(formData.cuotaInicial) || 0)}</span>
+                      <span className="text-slate-900 font-bold text-green-600">-{formatearMoneda(parseFloat(formData.cuotaInicial) || 0, moneda)}</span>
                     </div>
                     <div className="flex justify-between pt-3 border-t border-slate-200 text-base">
                       <span className="text-slate-800 font-bold">Monto Neto Financiado:</span>
-                      <span className="font-extrabold text-blue-600">{formatearMoneda(resultado.montoFinanciado)}</span>
+                      <span className="font-extrabold text-blue-600">{formatearMoneda(resultado.montoFinanciado, moneda)}</span>
                     </div>
                   </div>
                 </div>
@@ -494,7 +555,7 @@ export default function SimuladorPage() {
                     </div>
                     <div className="flex justify-between">
                       <span className="text-slate-600">VAN del Deudor:</span>
-                      <span className="text-slate-900 font-bold">{formatearMoneda(resultado.vanDeudor)}</span>
+                      <span className="text-slate-900 font-bold">{formatearMoneda(resultado.vanDeudor, moneda)}</span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-slate-600">TIR Deudor Obtenida:</span>
@@ -527,13 +588,13 @@ export default function SimuladorPage() {
                       {resultado.cronograma.map((pago: PagoCronograma, index: number) => (
                         <tr key={index} className="hover:bg-slate-50 transition">
                           <td className="px-4 py-3 text-center text-slate-900 font-bold bg-slate-50">{pago.numeroCuota || index + 1}</td>
-                          <td className="px-4 py-3 text-right text-slate-600">{formatearMoneda(pago.interes)}</td>
-                          <td className="px-4 py-3 text-right text-slate-600">{formatearMoneda(pago.amortizacionCapital)}</td>
-                          <td className="px-4 py-3 text-right text-red-600">{formatearMoneda(pago.segDesgravamen || 0)}</td>
-                          <td className="px-4 py-3 text-right text-red-600">{formatearMoneda(pago.segVehicular || 0)}</td>
-                          <td className="px-4 py-3 text-right text-amber-700 text-xs">{formatearMoneda(pago.itfPeriodo || 0)}</td>
-                          <td className="px-4 py-3 text-right font-bold bg-blue-50/60 text-blue-700">{formatearMoneda(pago.cuotaTotal)}</td>
-                          <td className="px-4 py-3 text-right font-bold text-slate-900">{formatearMoneda(pago.saldoFinal)}</td>
+                          <td className="px-4 py-3 text-right text-slate-600">{formatearMoneda(pago.interes, moneda)}</td>
+                          <td className="px-4 py-3 text-right text-slate-600">{formatearMoneda(pago.amortizacionCapital, moneda)}</td>
+                          <td className="px-4 py-3 text-right text-red-600">{formatearMoneda(pago.segDesgravamen || 0, moneda)}</td>
+                          <td className="px-4 py-3 text-right text-red-600">{formatearMoneda(pago.segVehicular || 0, moneda)}</td>
+                          <td className="px-4 py-3 text-right text-amber-700 text-xs">{formatearMoneda(pago.itfPeriodo || 0, moneda)}</td>
+                          <td className="px-4 py-3 text-right font-bold bg-blue-50/60 text-blue-700">{formatearMoneda(pago.cuotaTotal, moneda)}</td>
+                          <td className="px-4 py-3 text-right font-bold text-slate-900">{formatearMoneda(pago.saldoFinal, moneda)}</td>
                         </tr>
                       ))}
                     </tbody>
