@@ -67,7 +67,7 @@ export default function VehiculosPage() {
         setLoading(true)
         
         // Obtener TC del backend
-        const tcRes = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/configuracion/tipo-cambio`, {
+        const tcRes = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/configuraciones/tipo-cambio`, {
            headers: { 'Authorization': `Bearer ${token}` }
         })
         if (tcRes.ok) setTipoCambio(await tcRes.json())

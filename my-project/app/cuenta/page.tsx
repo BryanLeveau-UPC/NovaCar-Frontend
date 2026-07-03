@@ -49,7 +49,7 @@ export default function CuentaPage() {
 
   useEffect(() => {
     const token = localStorage.getItem('auth_token')
-    const idUsuario = localStorage.getItem('id_usuario')
+    const idUsuario = localStorage.getItem('admin_id')
 
     if (!token || !idUsuario) {
       router.push('/')

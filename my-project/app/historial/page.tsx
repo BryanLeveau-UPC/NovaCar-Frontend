@@ -6,17 +6,11 @@ import { useRouter } from 'next/navigation'
 import { Eye, CheckCircle, Clock, CheckSquare } from 'lucide-react'
 import Link from 'next/link'
 
-// --- 1. UTILIDADES LOCALES (Mayor contraste visual) ---
-const formatearMoneda = (valor: number) => {
-  return `S/ ${valor.toLocaleString('es-PE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
-}
-
 const formatearPorcentaje = (valor: number) => {
   return `${valor.toLocaleString('es-PE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}%`
 }
-// ------------------------------------------------------
 
-// --- 2. INTERFACES (Basadas en tus DTOs) ---
+// --- INTERFACES (Basadas en tus DTOs) ---
 interface Credito {
   idCredito: number
   idCliente: number
@@ -52,7 +46,30 @@ export default function HistorialPage() {
   const [cronograma, setCronograma] = useState<PagoCronograma[]>([])
   const [loadingCronograma, setLoadingCronograma] = useState(false)
 
-  // 1. Cargar todos los créditos/simulaciones
+  // Nuevos estados para la moneda y tipo de cambio
+  const [monedaPreferida, setMonedaPreferida] = useState('PEN')
+  const [tipoCambio, setTipoCambio] = useState(3.40)
+
+  // Formateador inteligente según moneda preferida y tipo de cambio
+  // (Asumimos que la BD guarda en PEN por defecto, si tuvieras la moneda de origen la pasas como 2do parámetro)
+  const formatearMoneda = (valor: number, monedaBase: string = 'PEN') => {
+    let valorFinal = valor;
+    let simbolo = monedaBase === 'USD' ? 'US$' : 'S/';
+
+    if (monedaPreferida === 'USD' && monedaBase === 'PEN') {
+      valorFinal = valor / tipoCambio;
+      simbolo = 'US$';
+    } else if (monedaPreferida === 'PEN' && monedaBase === 'USD') {
+      valorFinal = valor * tipoCambio;
+      simbolo = 'S/';
+    } else {
+      simbolo = monedaPreferida === 'USD' ? 'US$' : 'S/';
+    }
+
+    return `${simbolo} ${valorFinal.toLocaleString('es-PE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  }
+
+  // 1. Cargar todos los créditos/simulaciones + TC
   useEffect(() => {
     const fetchCreditos = async () => {
       const token = localStorage.getItem('auth_token')
@@ -61,7 +78,20 @@ export default function HistorialPage() {
         return
       }
 
+      // Cargar preferencia del localStorage
+      const pref = localStorage.getItem('moneda_preferida') || 'PEN'
+      setMonedaPreferida(pref)
+
       try {
+        setLoading(true)
+
+        // Obtener TC del backend
+        const tcRes = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/configuraciones/tipo-cambio`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        })
+        if (tcRes.ok) setTipoCambio(await tcRes.json())
+
+        // Obtener historial
         const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/creditos`, {
           headers: { 'Authorization': `Bearer ${token}` }
         })
@@ -69,7 +99,6 @@ export default function HistorialPage() {
         if (!response.ok) throw new Error('Error al cargar el historial de créditos.')
 
         const data = await response.json()
-        // Ordenamos para ver los más recientes primero (asumiendo que el ID mayor es el más nuevo)
         setCreditos(data.sort((a: Credito, b: Credito) => b.idCredito - a.idCredito))
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Error de conexión')
