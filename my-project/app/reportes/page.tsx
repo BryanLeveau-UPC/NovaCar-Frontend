@@ -5,11 +5,7 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { FileDown, TrendingUp, PieChart } from 'lucide-react'
 
-// --- 1. UTILIDADES LOCALES (Alto Contraste) ---
-const formatearMoneda = (valor: number) => {
-  return `S/ ${(valor || 0).toLocaleString('es-PE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
-}
-
+// --- 1. UTILIDADES LOCALES ---
 const formatearPorcentaje = (valor: number) => {
   return `${(valor || 0).toLocaleString('es-PE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}%`
 }
@@ -18,9 +14,9 @@ const formatearPorcentaje = (valor: number) => {
 // --- 2. INTERFACES REALES ---
 interface Cliente {
   idCliente: number
-  cliDni: string      
-  cliNombres: string  
-  cliApellidos: string 
+  cliDni: string
+  cliNombres: string
+  cliApellidos: string
 }
 
 interface Vehiculo {
@@ -37,7 +33,7 @@ interface Credito {
   montoFinanciado: number
   cuotaMensualRegular: number
   tcea: number
-  plazoMeses?: number 
+  plazoMeses?: number
   estado: string
   fechaCreacion?: string
 }
@@ -57,7 +53,31 @@ export default function ReportesPage() {
   const [filtroCliente, setFiltroCliente] = useState('')
   const [filtroVehiculo, setFiltroVehiculo] = useState('')
 
-  // 1. Cargar toda la data de la base de datos
+  // Estados de moneda y tipo de cambio (mismo patrón que Historial)
+  const [monedaPreferida, setMonedaPreferida] = useState('PEN')
+  const [tipoCambio, setTipoCambio] = useState(3.40)
+
+  // Formateador inteligente según moneda preferida y tipo de cambio
+  // (Se asume que la BD guarda en PEN por defecto; si se conociera la moneda de origen
+  // de cada registro, se pasaría como 2do parámetro)
+  const formatearMoneda = (valor: number, monedaBase: string = 'PEN') => {
+    let valorFinal = valor || 0
+    let simbolo = monedaBase === 'USD' ? 'US$' : 'S/'
+
+    if (monedaPreferida === 'USD' && monedaBase === 'PEN') {
+      valorFinal = valorFinal / tipoCambio
+      simbolo = 'US$'
+    } else if (monedaPreferida === 'PEN' && monedaBase === 'USD') {
+      valorFinal = valorFinal * tipoCambio
+      simbolo = 'S/'
+    } else {
+      simbolo = monedaPreferida === 'USD' ? 'US$' : 'S/'
+    }
+
+    return `${simbolo} ${valorFinal.toLocaleString('es-PE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+  }
+
+  // 1. Cargar toda la data de la base de datos + preferencia de moneda + tipo de cambio
   useEffect(() => {
     const fetchData = async () => {
       const token = localStorage.getItem('auth_token')
@@ -66,11 +86,16 @@ export default function ReportesPage() {
         return
       }
 
+      // Cargar preferencia guardada
+      const pref = localStorage.getItem('moneda_preferida') || 'PEN'
+      setMonedaPreferida(pref)
+
       try {
-        const [resCreditos, resClientes, resVehiculos] = await Promise.all([
+        const [resCreditos, resClientes, resVehiculos, resTipoCambio] = await Promise.all([
           fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/creditos`, { headers: { 'Authorization': `Bearer ${token}` } }),
           fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/clientes`, { headers: { 'Authorization': `Bearer ${token}` } }),
-          fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/vehiculos`, { headers: { 'Authorization': `Bearer ${token}` } })
+          fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/vehiculos`, { headers: { 'Authorization': `Bearer ${token}` } }),
+          fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/configuraciones/tipo-cambio`, { headers: { 'Authorization': `Bearer ${token}` } })
         ])
 
         if (!resCreditos.ok || !resClientes.ok || !resVehiculos.ok) {
@@ -80,6 +105,10 @@ export default function ReportesPage() {
         setCreditos(await resCreditos.json())
         setClientes(await resClientes.json())
         setVehiculos(await resVehiculos.json())
+
+        if (resTipoCambio.ok) {
+          setTipoCambio(await resTipoCambio.json())
+        }
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Error de conexión')
       } finally {
@@ -111,7 +140,7 @@ export default function ReportesPage() {
   // 4. Cálculos de KPIs Protegidos
   const totalOperaciones = creditosFiltrados.length
   const montoTotalFinanciado = creditosFiltrados.reduce((sum, c) => sum + (c.montoFinanciado || 0), 0)
-  
+
   const cuotaMensualPromedio = totalOperaciones > 0
     ? creditosFiltrados.reduce((sum, c) => sum + (c.cuotaMensualRegular || 0), 0) / totalOperaciones
     : 0
@@ -127,11 +156,12 @@ export default function ReportesPage() {
     ? creditosFiltrados.reduce((sum, c) => sum + (c.tcea || 0), 0) / totalOperaciones
     : 0
 
-  // 5. Exportar Reporte a TXT/PDF (Datos Reales Protegidos)
+  // 5. Exportar Reporte a TXT/PDF (Datos Reales Protegidos, respeta moneda seleccionada)
   const handleExport = () => {
     const content = `
 REPORTE DE OPERACIONES - AUTO-COMPRA INTELIGENTE
 Generado: ${new Date().toLocaleDateString('es-PE')}
+Moneda: ${monedaPreferida}
 =================================================
 
 RESUMEN EJECUTIVO
@@ -154,7 +184,7 @@ TCEA: ${formatearPorcentaje((c.tcea || 0) * 100)}
 Estado: ${c.estado}
 ---`).join('\n')}
     `
-    
+
     const blob = new Blob([content], { type: 'text/plain' })
     const url = window.URL.createObjectURL(blob)
     const a = document.createElement('a')
@@ -204,7 +234,7 @@ Estado: ${c.estado}
                 <option value="">-- Todos los Clientes --</option>
                 {clientes.map(c => (
                   <option key={c.idCliente} value={c.idCliente.toString()}>
-                    {c.cliNombres} {c.cliApellidos}
+                    {c.cliNombres} {c.cliApellidos} - (DNI: {c.cliDni})
                   </option>
                 ))}
               </select>
@@ -282,7 +312,7 @@ Estado: ${c.estado}
           <div className="p-6 border-b border-slate-300 bg-slate-50">
             <h3 className="text-lg font-extrabold text-slate-900">Desglose de Operaciones</h3>
           </div>
-          
+
           {creditosFiltrados.length === 0 ? (
             <div className="p-12 text-center">
               <p className="text-slate-800 text-lg">No hay datos que coincidan con los filtros seleccionados.</p>

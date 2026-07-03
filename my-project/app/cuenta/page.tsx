@@ -109,7 +109,7 @@ export default function CuentaPage() {
   }, [router])
 
   const handleMonedaChange = async (nuevaMoneda: string) => {
-    const idUsuario = localStorage.getItem('id_usuario')
+    const idUsuario = localStorage.getItem('admin_id')
     const token = localStorage.getItem('auth_token')
 
     if (!idUsuario || !token) return
@@ -142,6 +142,11 @@ export default function CuentaPage() {
         moneda: configActualizada.monedaDefault.toUpperCase(),
         guardando: false,
       }))
+
+      // También actualizamos la preferencia usada por Reportes/Historial
+      localStorage.setItem('moneda_preferida', configActualizada.monedaDefault.toUpperCase())
+
+      alert(`Moneda actualizada a ${configActualizada.monedaDefault.toUpperCase() === 'USD' ? 'Dólares (USD)' : 'Soles (PEN)'}.`)
     } catch (error) {
       console.error('Error guardando configuración:', error)
       setState((prev) => ({ ...prev, guardando: false }))
@@ -154,7 +159,7 @@ export default function CuentaPage() {
       localStorage.removeItem('auth_token')
       localStorage.removeItem('admin_nombres')
       localStorage.removeItem('admin_dni')
-      localStorage.removeItem('id_usuario')
+      localStorage.removeItem('admin_id')
       router.push('/')
     }
   }
