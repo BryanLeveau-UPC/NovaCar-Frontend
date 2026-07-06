@@ -515,11 +515,11 @@ export default function SimuladorPage() {
                 </div>
                 <div className="bg-gradient-to-br from-green-50 to-green-100 border border-green-200 rounded-lg p-6 shadow-sm">
                   <p className="text-green-700 text-xs font-bold uppercase tracking-wider mb-1">TCEA (Costo Real Anual)</p>
-                  <p className="text-2xl font-black text-green-950">{formatearPorcentaje(resultado.tcea * 100)}</p>
+                  <p className="text-2xl font-black text-green-950">{formatearPorcentaje(resultado.tcea)}</p>
                 </div>
                 <div className="bg-gradient-to-br from-purple-50 to-purple-100 border border-purple-200 rounded-lg p-6 shadow-sm">
                   <p className="text-purple-700 text-xs font-bold uppercase tracking-wider mb-1">TEA Solicitada</p>
-                  <p className="text-2xl font-black text-purple-950">{formatearPorcentaje(resultado.tea * 100)}</p>
+                  <p className="text-2xl font-black text-purple-950">{formatearPorcentaje(resultado.tea)}</p>
                 </div>
                 <div className="bg-gradient-to-br from-amber-50 to-orange-100 border border-amber-200 rounded-lg p-6 shadow-sm">
                   <p className="text-amber-800 text-xs font-bold uppercase tracking-wider mb-1">Costo Total del Crédito</p>
@@ -551,7 +551,7 @@ export default function SimuladorPage() {
                   <div className="space-y-3 font-medium text-sm">
                     <div className="flex justify-between">
                       <span className="text-slate-600">TEM Equivalente (Mensual):</span>
-                      <span className="text-slate-900 font-bold">{formatearPorcentaje(resultado.tem * 100)}</span>
+                      <span className="text-slate-900 font-bold">{formatearPorcentaje(resultado.tem*100)}</span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-slate-600">VAN del Deudor:</span>
