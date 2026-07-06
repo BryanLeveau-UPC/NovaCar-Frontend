@@ -8,12 +8,14 @@ import Link from 'next/link'
 
 export default function NuevaTasaPage() {
   const router = useRouter()
+  
+  // 1. CORRECCIÓN: capitalizacion inicia en 'diario' en lugar de ''
   const [formData, setFormData] = useState({
     nombre: '',
     tipoTasa: 'efectiva',
     valor: '',
     periodo: 'anual',
-    capitalizacion: '',
+    capitalizacion: 'diario', 
     moneda: 'pen'
   })
 
@@ -29,7 +31,7 @@ export default function NuevaTasaPage() {
     router.push('/tasas')
   }
 
-    const inputClass = "w-full px-4 py-2 border border-slate-400 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition text-slate-950 placeholder:text-slate-400 bg-white"
+  const inputClass = "w-full px-4 py-2 border border-slate-400 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition text-slate-950 placeholder:text-slate-400 bg-white"
 
   return (
     <ProtectedLayout title="Registrar Nueva Tasa">
@@ -46,11 +48,12 @@ export default function NuevaTasaPage() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium text-slate-700 mb-1">Nombre de la Tasa</label>
-                <input className={inputClass} placeholder="Ej: TEA Preferencial" onChange={e => setFormData({...formData, nombre: e.target.value})} required />
+                <input className={inputClass} placeholder="Ej: TEA Preferencial" value={formData.nombre} onChange={e => setFormData({...formData, nombre: e.target.value})} required />
               </div>
               <div>
                 <label className="block text-sm font-medium text-slate-700 mb-1">Tipo de Tasa</label>
-                <select className={inputClass} onChange={e => setFormData({...formData, tipoTasa: e.target.value})}>
+                {/* 2. CORRECCIÓN: Agregado value={formData.tipoTasa} */}
+                <select className={inputClass} value={formData.tipoTasa} onChange={e => setFormData({...formData, tipoTasa: e.target.value})}>
                   <option value="efectiva">Efectiva</option>
                   <option value="nominal">Nominal</option>
                 </select>
@@ -61,11 +64,12 @@ export default function NuevaTasaPage() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium text-slate-700 mb-1">Valor Decimal (ej: 0.18)</label>
-                <input type="number" step="0.0001" className={inputClass} placeholder="0.18" onChange={e => setFormData({...formData, valor: e.target.value})} required />
+                <input type="number" step="0.0001" className={inputClass} placeholder="0.18" value={formData.valor} onChange={e => setFormData({...formData, valor: e.target.value})} required />
               </div>
               <div>
                 <label className="block text-sm font-medium text-slate-700 mb-1">Moneda</label>
-                <select className={inputClass} onChange={e => setFormData({...formData, moneda: e.target.value})}>
+                {/* 2. CORRECCIÓN: Agregado value={formData.moneda} */}
+                <select className={inputClass} value={formData.moneda} onChange={e => setFormData({...formData, moneda: e.target.value})}>
                   <option value="pen">Soles (PEN)</option>
                   <option value="usd">Dólares (USD)</option>
                 </select>
@@ -76,21 +80,23 @@ export default function NuevaTasaPage() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium text-slate-700 mb-1">Periodicidad de Tasa</label>
-                <select className={inputClass} onChange={e => setFormData({...formData, periodo: e.target.value})}>
+                {/* 2. CORRECCIÓN: Agregado value={formData.periodo} */}
+                <select className={inputClass} value={formData.periodo} onChange={e => setFormData({...formData, periodo: e.target.value})}>
                   <option value="anual">Anual</option>
                   <option value="semestral">Semestral</option>
                   <option value="trimestral">Trimestral</option>
                   <option value="mensual">Mensual</option>
                   <option value="quincenal">Quincenal</option>
-                  <option value="diaria">Diaria</option>
+                  <option value="diario">Diario</option>
                 </select>
               </div>
               
               {formData.tipoTasa === 'nominal' && (
                 <div>
                   <label className="block text-sm font-medium text-slate-700 mb-1">Capitalización</label>
-                  <select className={inputClass} onChange={e => setFormData({...formData, capitalizacion: e.target.value})}>
-                    <option value="diaria">Diario</option>
+                  {/* 2. CORRECCIÓN: Agregado value={formData.capitalizacion} */}
+                  <select className={inputClass} value={formData.capitalizacion} onChange={e => setFormData({...formData, capitalizacion: e.target.value})}>
+                    <option value="diario">Diario</option>
                     <option value="quincenal">Quincenal</option>
                     <option value="mensual">Mensual</option>
                     <option value="bimestral">Bimestral</option>
@@ -108,25 +114,25 @@ export default function NuevaTasaPage() {
           </form>
         </div>
         {/* Recuadro de Atención / Transparencia */}
-<div className="mt-8 bg-blue-50 border-l-4 border-blue-600 p-4 rounded-r-lg shadow-sm">
-  <div className="flex">
-    <div className="flex-shrink-0">
-      <svg className="h-5 w-5 text-blue-600" viewBox="0 0 20 20" fill="currentColor">
-        <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
-      </svg>
-    </div>
-    <div className="ml-3">
-      <p className="text-sm text-blue-800 font-bold">
-        Nota de Transparencia Financiera
-      </p>
-      <p className="text-sm text-blue-800 mt-1 leading-relaxed">
-        Las tasas registradas en este formulario son procesadas automáticamente para su conversión a <strong>TEA (Tasa Efectiva Anual)</strong>. 
-        Este proceso garantiza la normalización de los cálculos financieros bajo el marco de transparencia del mercado peruano, 
-        permitiendo una comparación homogénea entre diferentes productos crediticios.
-      </p>
-    </div>
-  </div>
-</div>
+        <div className="mt-8 bg-blue-50 border-l-4 border-blue-600 p-4 rounded-r-lg shadow-sm">
+          <div className="flex">
+            <div className="flex-shrink-0">
+              <svg className="h-5 w-5 text-blue-600" viewBox="0 0 20 20" fill="currentColor">
+                <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+              </svg>
+            </div>
+            <div className="ml-3">
+              <p className="text-sm text-blue-800 font-bold">
+                Nota de Transparencia Financiera
+              </p>
+              <p className="text-sm text-blue-800 mt-1 leading-relaxed">
+                Las tasas registradas en este formulario son procesadas automáticamente para su conversión a <strong>TEA (Tasa Efectiva Anual)</strong>. 
+                Este proceso garantiza la normalización de los cálculos financieros bajo el marco de transparencia del mercado peruano, 
+                permitiendo una comparación homogénea entre diferentes productos crediticios.
+              </p>
+            </div>
+          </div>
+        </div>
       </div>
     </ProtectedLayout>
   )
