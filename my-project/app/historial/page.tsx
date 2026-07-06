@@ -206,7 +206,7 @@ export default function HistorialPage() {
                 <p className="text-3xl font-extrabold text-green-700">
                   {formatearPorcentaje(
                     creditos.length > 0 
-                      ? (creditos.reduce((sum, c) => sum + (c.tcea || 0), 0) / creditos.length) * 100 
+                      ? (creditos.reduce((sum, c) => sum + (c.tcea || 0), 0) / creditos.length) 
                       : 0
                   )}
                 </p>
@@ -288,7 +288,7 @@ export default function HistorialPage() {
                   </div>
                   <div>
                     <p className="text-blue-900 text-xs font-extrabold uppercase tracking-wider mb-1">TCEA</p>
-                    <p className="text-xl font-black text-blue-700">{formatearPorcentaje(selectedCredito.tcea * 100)}</p>
+                    <p className="text-xl font-black text-blue-700">{formatearPorcentaje(selectedCredito.tcea)}</p>
                   </div>
                 </div>
 

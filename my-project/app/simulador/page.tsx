@@ -417,7 +417,7 @@ export default function SimuladorPage() {
                     <option value="">-- Seleccionar Campaña --</option>
                     {tasas.map((t: TasaInteres) => (
                       <option key={t.idTasa} value={t.idTasa}>
-                        {t.nombre} - TEA: {(t.teaConvertida * 100).toFixed(2)}%
+                        {t.nombre} - TEA: {(t.teaConvertida).toFixed(2)}%
                       </option>
                     ))}
                   </select>
@@ -551,7 +551,7 @@ export default function SimuladorPage() {
                   <div className="space-y-3 font-medium text-sm">
                     <div className="flex justify-between">
                       <span className="text-slate-600">TEM Equivalente (Mensual):</span>
-                      <span className="text-slate-900 font-bold">{formatearPorcentaje(resultado.tem*100)}</span>
+                      <span className="text-slate-900 font-bold">{formatearPorcentaje(resultado.tem)}</span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-slate-600">VAN del Deudor:</span>
@@ -559,7 +559,7 @@ export default function SimuladorPage() {
                     </div>
                     <div className="flex justify-between">
                       <span className="text-slate-600">TIR Deudor Obtenida:</span>
-                      <span className="text-slate-900 font-bold">{formatearPorcentaje(resultado.tirDeudor * 100)}</span>
+                      <span className="text-slate-900 font-bold">{formatearPorcentaje(resultado.tirDeudor)}</span>
                     </div>
                   </div>
                 </div>

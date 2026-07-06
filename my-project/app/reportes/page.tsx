@@ -170,7 +170,7 @@ Total de Operaciones: ${totalOperaciones}
 Monto Total Financiado: ${formatearMoneda(montoTotalFinanciado)}
 Cuota Mensual Promedio: ${formatearMoneda(cuotaMensualPromedio)}
 Intereses Proyectados: ${formatearMoneda(interesesTotales)}
-TCEA Promedio: ${formatearPorcentaje(tceaPromedio * 100)}
+TCEA Promedio: ${formatearPorcentaje(tceaPromedio)}
 
 DETALLE DE OPERACIONES
 ----------------------
@@ -180,7 +180,7 @@ Cliente: ${getClienteNombre(c.idCliente)}
 Vehículo: ${getVehiculoNombre(c.idOferta)}
 Monto Financiado: ${formatearMoneda(c.montoFinanciado || 0)}
 Cuota Mensual: ${formatearMoneda(c.cuotaMensualRegular || 0)}
-TCEA: ${formatearPorcentaje((c.tcea || 0) * 100)}
+TCEA: ${formatearPorcentaje((c.tcea || 0))}
 Estado: ${c.estado}
 ---`).join('\n')}
     `
@@ -302,7 +302,7 @@ Estado: ${c.estado}
           <div className="bg-gradient-to-br from-orange-50 to-orange-100 border border-orange-200 rounded-xl p-6 shadow-sm">
             <div>
               <p className="text-orange-900 text-xs font-extrabold uppercase tracking-wider mb-1">TCEA Promedio</p>
-              <p className="text-2xl font-black text-orange-700">{formatearPorcentaje(tceaPromedio * 100)}</p>
+              <p className="text-2xl font-black text-orange-700">{formatearPorcentaje(tceaPromedio)}</p>
             </div>
           </div>
         </div>
@@ -350,7 +350,7 @@ Estado: ${c.estado}
                         {formatearMoneda(cred.cuotaMensualRegular || 0)}
                       </td>
                       <td className="px-6 py-4 text-center font-extrabold text-green-700">
-                        {formatearPorcentaje((cred.tcea || 0) * 100)}
+                        {formatearPorcentaje((cred.tcea || 0))}
                       </td>
                     </tr>
                   ))}
@@ -370,7 +370,7 @@ Estado: ${c.estado}
                   .sort((a, b) => a - b)
                   .map(plazo => {
                     const count = creditosFiltrados.filter(c => (c.plazoMeses || 0) === plazo).length
-                    const porcentaje = (count / totalOperaciones) * 100
+                    const porcentaje = (count / totalOperaciones) 
                     return plazo > 0 ? (
                       <div key={plazo}>
                         <div className="flex justify-between mb-2">
