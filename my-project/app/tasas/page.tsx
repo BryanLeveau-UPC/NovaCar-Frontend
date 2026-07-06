@@ -103,7 +103,7 @@ export default function TasasPage() {
             </span>
           </label>
 
-          <Link href="/tasas/nueva" className="bg-blue-600 text-white px-4 py-2 rounded-lg flex items-center gap-2 hover:bg-blue-700 transition shadow-sm">
+          <Link href="/tasas/nuevo" className="bg-blue-600 text-white px-4 py-2 rounded-lg flex items-center gap-2 hover:bg-blue-700 transition shadow-sm">
             <Plus size={18} /> Nueva Tasa
           </Link>
         </div>
